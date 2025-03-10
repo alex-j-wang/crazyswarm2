@@ -15,7 +15,7 @@ find_package(std_srvs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(crazyflie_interfaces REQUIRED)
 find_package(geometry_msgs REQUIRED)
-find_package(motion_capture_tracking_interfaces REQUIRED)
+# find_package(motion_capture_tracking_interfaces REQUIRED)
 find_package(Eigen3 REQUIRED)
 
 # add dependencies

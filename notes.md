@@ -1,0 +1,74 @@
+Outside container
+```bash
+ros2 launch motion_capture_tracking launch.py
+ros2 topic list
+```
+
+Inside container
+```bash
+catkin build
+source devel/setup.bash
+```
+
+Need `tf` outside container to communicate with `tf` inside container. Want `tf` to show up when we run `rostopic list`.
+
+Ideas
+- Use `ros2` motion capture tracking and try `ros1_bridge`.
+- Clone https://github.com/IMRCLab/motion_capture_tracking/tree/main into container and run it. Set hostname to IP.
+
+devel/share/motion_capture_tracking
+
+https://docs.ros.org/en/humble/index.html
+https://en.cppreference.com/w/
+
+port IMU to ros2
+- look at Crazyswarm2 Crazyflie.h
+- look at crazyflie_ros - how does ros1 publish IMU code, turn into ros2
+- CrazyflieROS class deals with node communication
+
+use cpp API to get IMU data
+translate data type to ros message
+make or reuse publisher from crazyflie to server
+display data on server
+
+smart pointers?
+pull request
+
+make file src/imu_tester.cpp
+imu_tester includes Crazyflie.h, runs a main function
+include memory
+
+inside main, make a unique ptr of type crazyflie my_cf
+std::unique_ptr<Crazyflie> my_cf = 
+
+("radio://")
+std::cout << "Got imu reading: "%f" << my_cf->function
+
+else of CMakeLists.txt
+```cmake
+add_executable(crazyflie_imu_tester, src/imu_tester.cpp)
+target_link_libraries(crazyflie_imu_tester crazyflie_cpp)
+```
+
+mkdir build
+cmake -B build -S .
+cmake -B build -S .
+
+crazyswarm2
+- crazyflie.py:488
+- teleop.cpp:164
+- crazyflie_server.cpp:727
+
+crazyflie_ros
+- crazyflie_server.cpp:609
+- crazyflie_server.cpp:504
+
+# Questions
+
+crazyswarm2
+Purpose of `teleop.cpp`? Namely `publish` seems to get some position data. But `crazyflie_server.cpp` has an `on_logging_pose` function. Does `publish` somehow set the `data` input to `on_logging_pose`?
+
+crazyflie_ros
+Is `onPoseData` equivalent to crazyswarm2 `on_logging_pose`? And would my ultimate goal be to add a parallel to `onImuData`? Also, it seems like IMU data has a dedicated topic `m_pubImu`. Is that how the system should be set up?
+
+`stateEstimate.x`
