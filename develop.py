@@ -25,7 +25,7 @@ def lookForDevContainer(docker_client, dev_image_label="crazyswarm2:latest"):
         return dev_container
 
 
-def startDevContainer(docker_client, image, is_bev_container=False):
+def startDevContainer(docker_client, image):
     """
     mount current repo and sub folders containing code into the container
     """
