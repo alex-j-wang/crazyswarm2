@@ -282,17 +282,18 @@ robot_types:
       voltage_warning: 3.8 # V
       voltage_critical: 3.7 # V
     firmware_logging:
-      enabled: false
-      # default_topics:
-      # remove to disable default topic
-      custom_topics:
-        pwm_signals:
+      enabled: true
+      default_topics:
+        pose:
           frequency: 10 # Hz
-          vars: [motor.m1, motor.m2, motor.m3, motor.m4]
-    #   custom_topics:
-    #    topic_name1:
-    #      frequency: 10 # Hz
-    #      vars: ["stateEstimateZ.x", "stateEstimateZ.y", "stateEstimateZ.z", "pm.vbat"]
+        status:
+          frequency: 1 # Hz
+        imu:
+          frequency: 10 # Hz
+      # custom_topics:
+      #   pwm_signals:
+      #     frequency: 10 # Hz
+      #     vars: [motor.m1, motor.m2, motor.m3, motor.m4]
   cf21_single_marker:
     motion_capture:
       enabled: true
@@ -387,7 +388,7 @@ all:
   # firmware logging for all drones (use robot_types/type_name to set per type, or
   # robots/drone_name to set per drone)
   firmware_logging:
-    enabled: false
+    enabled: true
     default_topics:
      # remove to disable default topic
       pose:

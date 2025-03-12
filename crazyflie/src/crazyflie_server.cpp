@@ -789,7 +789,7 @@ private:
 
   void on_logging_imu(uint32_t time_in_ms, const logImu* data) {
     if (publisher_imu_) {
-      geometry_msgs::msg::ImuStamped msg;
+      geometry_msgs::msg::Imu msg;
       msg.header.stamp = node_->get_clock()->now();
       msg.header.frame_id = "world";
 
@@ -991,7 +991,7 @@ private:
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr publisher_pose_;
 
   std::unique_ptr<LogBlock<logImu>> log_block_imu_;
-  rclcpp::Publisher<geometry_msgs::msg::ImuStamped>::SharedPtr publisher_imu_;
+  rclcpp::Publisher<geometry_msgs::msg::Imu>::SharedPtr publisher_imu_;
 
   std::unique_ptr<LogBlock<logScan>> log_block_scan_;
   rclcpp::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr publisher_scan_;
