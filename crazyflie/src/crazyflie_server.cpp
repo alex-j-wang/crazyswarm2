@@ -16,7 +16,7 @@
 #include "std_msgs/msg/string.hpp"
 #include "geometry_msgs/msg/twist.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
-#include "geometry_msgs/msg/imu_stamped.hpp"
+#include "sensor_msgs/msg/imu.hpp"
 #include "geometry_msgs/msg/transform_stamped.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
 #include "crazyflie_interfaces/srv/upload_trajectory.hpp"
@@ -392,7 +392,7 @@ public:
             int freq = log_config_map["default_topics.imu.frequency"].get<int>();
             RCLCPP_INFO(logger_, "[%s] Logging to /imu at %d Hz", name_.c_str(), freq);
 
-            publisher_imu_ = node->create_publisher<geometry_msgs::msg::PoseStamped>(name + "/imu", 10);
+            publisher_imu_ = node->create_publisher<sensor_msgs::msg::Imu>(name + "/imu", 10);
 
             std::function<void(uint32_t, const logImu*)> cb = std::bind(&CrazyflieROS::on_logging_imu, this, std::placeholders::_1, std::placeholders::_2);
 
@@ -789,16 +789,16 @@ private:
 
   void on_logging_imu(uint32_t time_in_ms, const logImu* data) {
     if (publisher_imu_) {
-      geometry_msgs::msg::Imu msg;
+      sensor_msgs::msg::Imu msg;
       msg.header.stamp = node_->get_clock()->now();
       msg.header.frame_id = "world";
 
-      msg.imu.acceleration.x = data->ax;
-      msg.imu.acceleration.y = data->ay;
-      msg.imu.acceleration.z = data->az;
-      msg.imu.gyro.x = data->gx;
-      msg.imu.gyro.y = data->gy;
-      msg.imu.gyro.z = data->gz;
+      msg.linear_acceleration.x = data->ax;
+      msg.linear_acceleration.y = data->ay;
+      msg.linear_acceleration.z = data->az;
+      msg.angular_velocity.x = data->gx;
+      msg.angular_velocity.y = data->gy;
+      msg.angular_velocity.z = data->gz;
 
       publisher_imu_->publish(msg);
     }
@@ -991,7 +991,7 @@ private:
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr publisher_pose_;
 
   std::unique_ptr<LogBlock<logImu>> log_block_imu_;
-  rclcpp::Publisher<geometry_msgs::msg::Imu>::SharedPtr publisher_imu_;
+  rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr publisher_imu_;
 
   std::unique_ptr<LogBlock<logScan>> log_block_scan_;
   rclcpp::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr publisher_scan_;
