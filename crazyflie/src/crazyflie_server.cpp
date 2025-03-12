@@ -106,6 +106,15 @@ private:
     int32_t quatCompressed;
   } __attribute__((packed));
 
+  struct logImu {
+    float ax;
+    float ay;
+    float az;
+    float gx;
+    float gy;
+    float gz;
+  } __attribute__((packed));
+
   struct logScan {
     uint16_t front;
     uint16_t left;
@@ -377,6 +386,25 @@ public:
                 {"stateEstimateZ", "quat"}
               }, cb));
             log_block_pose_->start(uint8_t(100.0f / (float)freq)); // this is in tens of milliseconds
+          }
+          else if (i.first.find("default_topics.imu") == 0) {
+            int freq = log_config_map["default_topics.imu.frequency"].get<int>();
+            RCLCPP_INFO(logger_, "[%s] Logging to /imu at %d Hz", name_.c_str(), freq);
+
+            publisher_imu_ = node->create_publisher<geometry_msgs::msg::PoseStamped>(name + "/imu", 10);
+
+            std::function<void(uint32_t, const logImu*)> cb = std::bind(&CrazyflieROS::on_logging_imu, this, std::placeholders::_1, std::placeholders::_2);
+
+            log_block_imu_.reset(new LogBlock<logImu>(
+              &cf_,{
+                {"acc", "x"},
+                {"acc", "y"},
+                {"acc", "z"},
+                {"gyro", "x"},
+                {"gyro", "y"},
+                {"gyro", "z"},
+              }, cb));
+            log_block_imu_->start(uint8_t(100.0f / (float)freq)); // this is in tens of milliseconds
           }
           else if (i.first.find("default_topics.scan") == 0) {
             int freq = log_config_map["default_topics.scan.frequency"].get<int>();
@@ -758,6 +786,23 @@ private:
     }
   }
 
+  void on_logging_imu(uint32_t time_in_ms, const logImu* data) {
+    if (publisher_imu_) {
+      geometry_msgs::msg::ImuStamped msg;
+      msg.header.stamp = node_->get_clock()->now();
+      msg.header.frame_id = "world";
+
+      msg.imu.acceleration.x = data->ax;
+      msg.imu.acceleration.y = data->ay;
+      msg.imu.acceleration.z = data->az;
+      msg.imu.gyro.x = data->gx;
+      msg.imu.gyro.y = data->gy;
+      msg.imu.gyro.z = data->gz;
+
+      publisher_imu_->publish(msg);
+    }
+  }
+
   void on_logging_scan(uint32_t time_in_ms, const logScan* data) {
     if (publisher_scan_) {
       
@@ -943,6 +988,9 @@ private:
   // logging
   std::unique_ptr<LogBlock<logPose>> log_block_pose_;
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr publisher_pose_;
+
+  std::unique_ptr<LogBlock<logImu>> log_block_imu_;
+  rclcpp::Publisher<geometry_msgs::msg::ImuStamped>::SharedPtr publisher_imu_;
 
   std::unique_ptr<LogBlock<logScan>> log_block_scan_;
   rclcpp::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr publisher_scan_;
