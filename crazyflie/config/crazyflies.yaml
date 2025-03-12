@@ -79,6 +79,8 @@ all:
         frequency: 10 # Hz
       status:
         frequency: 1 # Hz
+      imu:
+        frequency: 10 # Hz
     #custom_topics:
     #  topic_name1:
     #    frequency: 10 # Hz
