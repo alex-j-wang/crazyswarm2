@@ -1,57 +1,353 @@
-# named list of all robots
 robots:
-  cf231:
-    enabled: true
-    uri: radio://0/80/2M/E7E7E7E7E7
-    initial_position: [0.0, 0.0, 0.0]
-    type: cf21  # see robot_types
-    # firmware_params:
-    #   kalman:
-    #     pNAcc_xy: 1.0 # default 0.5
-    # firmware_logging:
-    #   enabled: true
-    #   custom_topics:
-    #     topic_name3: 
-    #       frequency: 1
-    #       vars: ["acc.x", "acc.y"]
+  zen:
+    enabled: false
+    uri: radio://*/120/2M/E7E7E7E71D
+    initial_position: [-1, 0., 0.75]
+    type: cf_painter # see robot_types
+  pollock:
+    enabled: false
+    uri: radio://*/80/2M/E7E7E7E73D
+    initial_position: [0, 0.0, 0.0]
+    type: cf_spray_painter # see robot_types
+  pete:
+    enabled: false
+    uri: radio://*/100/2M/E7E7E7E729
+    initial_position: [0, 0, 0.35]
+    type: cf_spray_painter # see robot_types
+  slinky:
+    enabled: false
+    uri: radio://*/80/2M/E7E7E7E70D
+    initial_position: [-0.5, 0.5, 0]
+    type: cf_spray_painter # see robot_types
+  cf1:
+    enabled: false
+    uri: radio://*/80/2M/E7E7E7E701
+    initial_position: [0.0, 0.5, 0.0]
+    type: cf21_m1 # see robot_types
+  cf2:
+    enabled: false
+    uri: radio://*/100/2M/E7E7E7E702
+    initial_position: [1.0, -0.5, 0.0]
+    type: cf21_single_marker # see robot_types
+  cf3:
+    enabled: false
+    uri: radio://*/120/2M/E7E7E7E703
+    initial_position: [2.5, 0.0, 0.0]
+    type: cf21_single_marker # see robot_types
+  cf4:
+    enabled: false
+    uri: radio://*/80/2M/E7E7E7E704
+    initial_position: [3.0, 0, 0.0]
+    type: cf21_m4 # see robot_types
   cf5:
     enabled: false
-    uri: radio://0/80/2M/E7E7E7E705
+    uri: radio://*/100/2M/E7E7E7E705
+    initial_position: [4.0, 0.5, 0.0]
+    type: cf21_single_marker # see robot_types
+  cf6:
+    enabled: false
+    uri: radio://*/120/2M/E7E7E7E706
+    initial_position: [5, 0, 0.0]
+    type: cf21_single_marker # see robot_types
+  cf7:
+    enabled: false
+    uri: radio://*/80/2M/E7E7E7E707
+    initial_position: [6, 0, 0]
+    type: cf_big
+  cf8:
+    enabled: false
+    uri: radio://*/80/2M/E7E7E7E708
+    initial_position: [0, 0.0, 0]
+    type: cf21 # see robot_types
+  cf9:
+    enabled: false
+    uri: radio://*/80/2M/E7E7E7E709
+    initial_position: [0.5, 0, 0.0]
+    type: cf21_single_marker # see robot_types
+  cf10:
+    enabled: false
+    uri: radio://*/80/2M/E7E7E7E70A
     initial_position: [0.0, -0.5, 0.0]
-    type: cf21  # see robot_types
-    # firmware_params:
-    #   kalman:
-    #     pNAcc_xy: 1.0 # default 0.5
-    #firmware_logging:
-    #  custom_topics:
-    #    topic_name3: 
-    #      frequency: 1
-    #      vars: ["acc.x", "acc.y", "acc.z"]
-# Definition of the various robot types
+    type: cf21_single_marker # see robot_types
+  cf11:
+    enabled: false
+    uri: radio://*/100/2M/E7E7E7E70B
+    initial_position: [0, 0, 0.0]
+    type: cf21_single_marker # see robot_types
+  cf12:
+    enabled: false
+    uri: radio://*/80/2M/E7E7E7E70C
+    initial_position: [-0.23, 0., 0.0]
+    type: cf21 # see robot_types
+  cf13:
+    enabled: false
+    uri: radio://*/120/2M/E7E7E7E70D
+    initial_position: [1.0, 0.0, 0.0]
+    type: cf21
+  cf14:
+    enabled: false
+    uri: radio://*/80/2M/E7E7E7E70E
+    initial_position: [0.00, 0.00, 0.00]
+    type: cf21 # see robot_types
+  cf15:
+    enabled: false
+    uri: radio://*/80/2M/E7E7E7E70F
+    initial_position: [0., 0., 0]
+    type: cf21_single_marker # see robot_types
+  cf16:
+    enabled: false
+    uri: radio://*/80/2M/E7E7E7E710
+    initial_position: [-0.0, 0.0, 0.0]
+    type: cf21_single_marker # see robot_types
+  cf17:
+    enabled: false
+    uri: radio://*/120/2M/E7E7E7E711
+    initial_position: [1.0, -1.0, 0.0]
+    type: cf21_single_marker # see robot_types
+  cf18:
+    enabled: true
+    uri: radio://*/80/2M/E7E7E7E712
+    initial_position: [0.0, 0.0, 0.0]
+    type: cf21 # see robot_types
+  cf19:
+    enabled: false
+    uri: radio://*/80/2M/E7E7E7E713
+    initial_position: [0., 0.5, 0.0]
+    type: cf21_single_marker # see robot_types
+  cf20:
+    enabled: false
+    uri: radio://*/80/2M/E7E7E7E714
+    initial_position: [0.0, 0.0, 0.0]
+    type: cf21_single_marker # see robot_types
+  cf21:
+    enabled: false
+    uri: radio://*/80/2M/E7E7E7E715
+    initial_position: [0.0, 0, 0.0]
+    type: cf21_single_marker
+  cf22:
+    enabled: false
+    uri: radio://*/100/2M/E7E7E7E716
+    initial_position: [1.0, 1.0, 0.0]
+    type: cf21_single_marker
+  cf23:
+    enabled: false
+    uri: radio://*/80/2M/E7E7E7E717
+    initial_position: [0.5, 0, 0.0]
+    type: cf21_m3
+  cf24:
+    enabled: false
+    uri: radio://*/80/2M/E7E7E7E718
+    initial_position: [0.0, 0.0, 0.0]
+    type: cf21_single_marker # see robot_types
+  cf25:
+    enabled: false
+    uri: radio://*/120/2M/E7E7E7E719
+    # initial_position: [0.5, 1.0, 0.0]
+    initial_position: [0., 0, 0.0]
+    type: cf21_single_marker # see robot_types
+  cf27:
+    enabled: false
+    uri: radio://*/80/2M/E7E7E7E71B
+    initial_position: [-0.0, 0, 0.0]
+    type: cf21_single_marker # see robot_types
+  cf28:
+    enabled: false
+    uri: radio://*/100/2M/E7E7E7E71C
+    initial_position: [0., 0., 0.0]
+    type: cf21_m4 # see robot_types
+  cf29:
+    enabled: false
+    uri: radio://*/120/2M/E7E7E7E71D
+    initial_position: [0., 0., 0.0]
+    type: cf21_m4 # see robot_types
+  cf30:
+    enabled: false
+    uri: radio://*/80/2M/E7E7E7E71E
+    initial_position: [0.0, 0.0, 0.]
+    type: cf21_single_marker # see robot_types
+  cf31:
+    enabled: false
+    uri: radio://*/80/2M/E7E7E7E71F
+    initial_position: [0., 0., 0.]
+    type: cf21 # see robot_types
+  cf32:
+    enabled: false
+    uri: radio://*/100/2M/E7E7E7E720
+    initial_position: [0.00, 0.00, 0.00]
+    type: cf21 # see robot_types
+  cf33:
+    enabled: false
+    uri: radio://*/80/2M/E7E7E7E721
+    initial_position: [0.0, 1.5, 0]
+    type: cf21_single_marker
+  cf34:
+    enabled: false
+    uri: radio://*/80/2M/E7E7E7E722
+    initial_position: [-0.5, -0.5, 0]
+    type: cf_spray_painter # see robot_types
+  cf35:
+    enabled: false
+    uri: radio://*/80/2M/E7E7E7E723
+    initial_position: [0.0, 0., 0]
+    type: cf21_single_marker # see robot_types
+  cf36:
+    enabled: false
+    uri: radio://*/100/2M/E7E7E7E724
+    initial_position: [0., 0, 0.]
+    type: cf21_single_marker # see robot_types
+  cf38:
+    enabled: false
+    uri: radio://*/80/2M/E7E7E7E726
+    initial_position: [0.0, 1.5, 0.0]
+    type: cf21_single_marker # see robot_types
+  cf40:
+    enabled: false
+    uri: radio://*/80/2M/E7E7E7E728
+    initial_position: [0, -0.5, 0.0]
+    type: cf21_single_marker # see robot_types
+  cf43:
+    enabled: false
+    uri: radio://*/120/2M/E7E7E7E72B
+    initial_position: [0.0, 0.0, 0.0]
+    type: cf21_single_marker
+  cf44:
+    enabled: false
+    uri: radio://*/80/2M/E7E7E7E72C
+    initial_position: [0, 0, 0]
+    type: cf21_m2 # see robot_types
+  cf45:
+    enabled: false
+    uri: radio://*/80/2M/E7E7E7E72D
+    initial_position: [0.0, 0.5, 0.0]
+    type: cf21_single_marker
+  cf47:
+    enabled: false
+    uri: radio://*/100/2M/E7E7E7E72F
+    initial_position: [0.0, 0.0, 0.0]
+    type: cf21_single_marker
+  cf48:
+    enabled: false
+    uri: radio://*/80/2M/E7E7E7E730
+    initial_position: [0.0, 0., 0]
+    type: cf21_single_marker # see robot_types
+  cf50: # Note Color Wheels don't work
+    enabled: false
+    uri: radio://*/120/2M/E7E7E7E732
+    initial_position: [0, 0, 0]
+    type: cf21_single_marker # see robot_types
+  cf60:
+    enabled: false
+    uri: radio://*/80/2M/E7E7E7E73C
+    initial_position: [1.5, 0, 0.]
+    type: cf21_single_marker # see robot_types
+  cf62:
+    enabled: false
+    uri: radio://*/80/2M/E7E7E7E73E
+    initial_position: [0, 2.5, 2.5]
+    type: cf21_single_marker # see robot_types
+  cf65:
+    enabled: false
+    uri: radio://*/80/2M/E7E7E7E741
+    initial_position: [-0.5, 0, 0]
+    type: cf21_single_marker # see robot_types
+  cf66:
+    enabled: false
+    uri: radio://*/80/2M/E7E7E7E742
+    initial_position: [0., 0., 0.]
+    type: cf21_single_marker # see robot_types
+  cf67:
+    enabled: false
+    uri: radio://*/80/2M/E7E7E7E743
+    initial_position: [-2.5, 0, 0]
+    type: cf21_m3 # see robot_types
+  cf69:
+    enabled: false
+    uri: radio://*/80/2M/E7E7E7E745
+    initial_position: [0.0, 0.0, 0.0]
+    type: cf21 # see robot_types
+  cf72:
+    enabled: false
+    uri: radio://*/80/2M/E7E7E7E748
+    initial_position: [0.0, 0., 0.]
+    type: cf21_single_marker # see robot_types
+
 robot_types:
   cf21:
     motion_capture:
+      enabled: false
+      marker: default
+      dynamics: default
+    big_quad: false
+    battery:
+      voltage_warning: 3.8 # V
+      voltage_critical: 3.7 # V
+    firmware_logging:
+      enabled: false
+      # default_topics:
+      # remove to disable default topic
+      custom_topics:
+        pwm_signals:
+          frequency: 10 # Hz
+          vars: [motor.m1, motor.m2, motor.m3, motor.m4]
+    #   custom_topics:
+    #    topic_name1:
+    #      frequency: 10 # Hz
+    #      vars: ["stateEstimateZ.x", "stateEstimateZ.y", "stateEstimateZ.z", "pm.vbat"]
+  cf21_single_marker:
+    motion_capture:
       enabled: true
-      # only if enabled; see motion_capture.yaml
       marker: default_single_marker
       dynamics: default
     big_quad: false
     battery:
-      voltage_warning: 3.8  # V
+      voltage_warning: 3.8 # V
       voltage_critical: 3.7 # V
-    # firmware_params:
-    #   kalman:
-    #     pNAcc_xy: 1.0 # default 0.5
-    #firmware_logging:
-    #   enabled: true
-    #   default_topics:
-    #   pose:
-    #     frequency: 1 # Hz
-    #   custom_topics:
-    #    topic_name3: 
-    #      frequency: 1
-    #      vars: ["acc.x", "acc.y", "acc.z"]
-
+  cf21_m4:
+    motion_capture:
+      enabled: true
+      marker: m4
+      dynamics: default
+    big_quad: false
+    battery:
+      voltage_warning: 3.8 # V
+      voltage_critical: 3.7 # V
+  cf21_m3:
+    motion_capture:
+      enabled: true
+      marker: m3
+      dynamics: default
+    big_quad: false
+    battery:
+      voltage_warning: 3.8 # V
+      voltage_critical: 3.7 # V
+  cf21_m2:
+    motion_capture:
+      enabled: true
+      marker: m2
+      dynamics: default
+    big_quad: false
+    battery:
+      voltage_warning: 3.8 # V
+      voltage_critical: 3.7 # V
+  cf21_m1:
+    motion_capture:
+      enabled: true
+      marker: m1
+      dynamics: default
+    big_quad: false
+    battery:
+      voltage_warning: 3.8 # V
+      voltage_critical: 3.7 # V
+  cf21_m1_big:
+    motion_capture:
+      enabled: true
+      marker: m1_big
+      dynamics: default
+    big_quad: false
+    # mass: 38
+    battery:
+      voltage_warning: 3.8 # V
+      voltage_critical: 3.7 # V
   cf21_mocap_deck:
     motion_capture:
       enabled: true
@@ -60,19 +356,38 @@ robot_types:
       dynamics: default
     big_quad: false
     battery:
-      voltage_warning: 3.8  # V
+      voltage_warning: 3.8 # V
       voltage_critical: 3.7 # V
-
+  cf_big:
+    motion_capture:
+      enabled: true
+      marker: big_frame
+      dynamics: default
+    big_quad: true
+  cf_painter:
+    motion_capture:
+      enabled: false
+      marker: painter_frame
+      dynamics: default
+    big_quad: true
+    # posCtlPid:
+    #   thrustBase: 29491
     # firmware_params:
     #   kalman:
     #     pNAcc_xy: 1.0 # default 0.5
+  cf_spray_painter:
+    motion_capture:
+      enabled: true
+      marker: default_single_marker
+      dynamics: default
+    big_quad: true
 
 # global settings for all robots
 all:
   # firmware logging for all drones (use robot_types/type_name to set per type, or
   # robots/drone_name to set per drone)
   firmware_logging:
-    enabled: true
+    enabled: false
     default_topics:
      # remove to disable default topic
       pose:
@@ -95,7 +410,9 @@ all:
       enHighLevel: 1
     stabilizer:
       estimator: 2 # 1: complementary, 2: kalman
-      controller: 2 # 1: PID, 2: mellinger
+      controller: 1 # 1: PID, 2: mellinger
+    posCtlPid:
+      thrustBase: 29491
     # ring:
     #   effect: 16 # 6: double spinner, 7: solid color, 16: packetRate
     #   solidBlue: 255 # if set to solid color
@@ -105,8 +422,12 @@ all:
     locSrv:
       extPosStdDev: 1e-3
       extQuatStdDev: 0.5e-1
-    # kalman:
-    #   resetEstimation: 1
+    kalman:
+      resetEstimation: 1
   broadcasts:
     num_repeats: 15 # number of times broadcast commands are repeated
     delay_between_repeats_ms: 1 # delay in milliseconds between individual repeats
+  unicasts:
+    num_repeats: 2
+
+  print_latency: true
