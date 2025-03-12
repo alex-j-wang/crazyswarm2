@@ -71,4 +71,6 @@ Purpose of `teleop.cpp`? Namely `publish` seems to get some position data. But `
 crazyflie_ros
 Is `onPoseData` equivalent to crazyswarm2 `on_logging_pose`? And would my ultimate goal be to add a parallel to `onImuData`? Also, it seems like IMU data has a dedicated topic `m_pubImu`. Is that how the system should be set up?
 
-`stateEstimate.x`
+colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
+ros2 launch '/home/anoop/Alex/crazyswarm2/crazyflie/launch/launch.py'
+ros2 topic list

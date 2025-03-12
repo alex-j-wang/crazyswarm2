@@ -11,6 +11,8 @@ from launch.substitutions import LaunchConfiguration, PythonExpression
 def parse_yaml(context):
     # Load the crazyflies YAML file
     crazyflies_yaml = LaunchConfiguration('crazyflies_yaml_file').perform(context)
+    # TODO: don't hard code this...
+    crazyflies_yaml = "crazyflie/config/crazyflies.yaml"
     with open(crazyflies_yaml, 'r') as file:
         crazyflies = yaml.safe_load(file)
 
@@ -72,8 +74,8 @@ def parse_yaml(context):
             parameters= server_params,
         ),
         Node(
-            package='crazyflie',
-            executable='crazyflie_server',
+            # package='crazyflie',
+            executable='build/crazyflie/crazyflie_server',
             condition=LaunchConfigurationEquals('backend','cpp'),
             name='crazyflie_server',
             output='screen',
