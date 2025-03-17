@@ -74,6 +74,7 @@ def parse_yaml(context):
             parameters= server_params,
         ),
         Node(
+            # TODO: don't hardcode this
             # package='crazyflie',
             executable='build/crazyflie/crazyflie_server',
             condition=LaunchConfigurationEquals('backend','cpp'),

@@ -39,6 +39,7 @@ def startDevContainer(docker_client, image):
     # Create the container
     container = docker_client.containers.create(
         image,
+        name="anoop-crazyswarm2",
         volumes=volumes,
         command="bash",
         tty=True,

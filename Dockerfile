@@ -40,7 +40,9 @@ RUN apt-get update -q && \
     libpython3-dev \
     python3-tk \
     ros-humble-ros-base \
+    ros-humble-motion-capture-tracking \
     ros-dev-tools \
+    libboost-all-dev \
     #check if Zenoh should be installed
     $(if [ "$EXPERIMENTAL_ZENOH_RMW" = "TRUE" ]; then echo "ros-humble-rmw-zenoh-cpp"; fi) \
     && rm -rf /var/lib/apt/lists/*
@@ -61,4 +63,4 @@ RUN git submodule update --init --recursive
 # Build packages with Colcon
 WORKDIR /ros_ws/
 RUN . /opt/ros/humble/setup.sh && \
-    colcon build --symlink-install
+    colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
