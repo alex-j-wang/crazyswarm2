@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="uri" default="radio://0/80/2M" />
+  <arg name="frame" default="crazy_mpc3" />
+  <arg name="world_frame" default="world"/>
+  <arg name="joy_dev" default="/dev/input/js0" />
+
+  <!-- run vicon bridge -->
+  <include file="$(find mocap_vicon)/launch/vicon.launch"/>
+  
+  <include file="$(find crazyflie_driver)/launch/crazyflie_server.launch">
+  </include>
+
+  <group ns="crazyflie">
+    <include file="$(find crazyflie_driver)/launch/crazyflie_add.launch">
+      <arg name="uri" value="$(arg uri)" />
+      <arg name="tf_prefix" value="crazyflie" />
+      <arg name="enable_logging" value="True" />
+    </include>
+
+    <!--node name="joy" pkg="joy" type="joy_node" output="screen">
+      <param name="dev" value="$(arg joy_dev)" />
+    </node-->
+
+    <node name="joystick_controller" pkg="crazyflie_demo" type="controller.py" output="screen">
+      <param name="use_crazyflie_controller" value="True" />
+    </node>
+
+    <node name="mpc_demo" pkg="crazyflie_mpc" type="follow_waypoint.py" output="screen">
+        <param name="frame"  value="$(arg frame)"/>
+        <param name="world_frame" value="$(arg world_frame)"/>
+    </node>
+
+    <node pkg="tf" type="static_transform_publisher" name="baselink_broadcaster" args="0 0 0 0 0 0 1 $(arg frame) /crazyflie/base_link 100" />
+  </group>
+
+
+</launch>
