@@ -39,6 +39,7 @@ RUN apt-get update -q && \
     python3-rosdep \
     libpython3-dev \
     python3-tk \
+    python3-scipy \
     ros-humble-ros-base \
     ros-humble-motion-capture-tracking \
     ros-dev-tools \
