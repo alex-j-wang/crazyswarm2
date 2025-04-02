@@ -74,3 +74,10 @@ Is `onPoseData` equivalent to crazyswarm2 `on_logging_pose`? And would my ultima
 colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
 ros2 launch '/home/anoop/Alex/crazyswarm2/crazyflie/launch/launch.py'
 ros2 topic list
+
+systemctl --user start docker-desktop
+
+TODO:
+- Check Docker build log, see if anything in `requirements.txt` is unnecessary
+- Update crazyflie_mpc CMakeLists.txt and package.xml
+- Update python scripts

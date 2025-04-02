@@ -1,0 +1,12 @@
+pyyaml
+sphinx
+sphinx-argparse
+sphinx-rtd-theme
+sphinx-tabs
+sphinxcontrib-programoutput
+tk
+scipy
+casadi
+transforms3d
+git+https://github.com/DLu/tf_transformations.git
+torch

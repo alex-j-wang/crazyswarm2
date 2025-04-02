@@ -1,9 +1,6 @@
 # Use official Ubuntu 22.04 base image
 FROM ubuntu:22.04
 
-#RMW ZENOH experimental flag
-ARG EXPERIMENTAL_ZENOH_RMW=FALSE
-
 # Set noninteractive mode for APT
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -38,15 +35,15 @@ RUN apt-get update -q && \
     python3-colcon-mixin \
     python3-rosdep \
     libpython3-dev \
-    python3-tk \
-    python3-scipy \
+    ros-humble-rclpy \
     ros-humble-ros-base \
     ros-humble-motion-capture-tracking \
     ros-dev-tools \
     libboost-all-dev \
-    #check if Zenoh should be installed
-    $(if [ "$EXPERIMENTAL_ZENOH_RMW" = "TRUE" ]; then echo "ros-humble-rmw-zenoh-cpp"; fi) \
     && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install -r requirements.txt
 
 # Set up workspace
 WORKDIR /ros_ws/src
@@ -55,8 +52,9 @@ WORKDIR /ros_ws/src
 RUN rosdep init && rosdep update
 
 # Clone driver code
-RUN git clone https://github.com/alex-j-wang/crazyswarm2.git .
-RUN git submodule update --init --recursive
+# RUN git clone https://github.com/alex-j-wang/crazyswarm2.git .
+# RUN git submodule update --init --recursive
+COPY . .
 
 # Run install script and pass in the architecture
 # RUN ARCH=$(dpkg --print-architecture) && echo "Building driver with $ARCH" && /ros_ws/src/install_spot_ros2.sh --$ARCH
@@ -64,4 +62,4 @@ RUN git submodule update --init --recursive
 # Build packages with Colcon
 WORKDIR /ros_ws/
 RUN . /opt/ros/humble/setup.sh && \
-    colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
+    colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Debug

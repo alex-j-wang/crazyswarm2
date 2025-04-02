@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.0.2)
 project(crazyflie_mpc)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
@@ -7,9 +7,9 @@ project(crazyflie_mpc)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-# find_package(catkin REQUIRED COMPONENTS
-#   rospy
-# )
+find_package(catkin REQUIRED COMPONENTS
+  rospy
+)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -100,12 +100,12 @@ project(crazyflie_mpc)
 ## LIBRARIES: libraries you create in this project that dependent projects also need
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
-# catkin_package(
-# #  INCLUDE_DIRS include
-# #  LIBRARIES crazyflie_mpc
-# #  CATKIN_DEPENDS rospy
-# #  DEPENDS system_lib
-# )
+catkin_package(
+#  INCLUDE_DIRS include
+#  LIBRARIES crazyflie_mpc
+#  CATKIN_DEPENDS rospy
+#  DEPENDS system_lib
+)
 
 ###########
 ## Build ##
@@ -113,10 +113,10 @@ project(crazyflie_mpc)
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-# include_directories(
-# # include
-#   ${catkin_INCLUDE_DIRS}
-# )
+include_directories(
+# include
+  ${catkin_INCLUDE_DIRS}
+)
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
