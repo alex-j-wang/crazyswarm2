@@ -1,9 +1,16 @@
 {
-    "files.associations": {
-        "chrono": "cpp",
-        "bitset": "cpp",
-        "optional": "cpp",
-        "memory": "cpp",
-        "future": "cpp"
-    }
+  "git.ignoredRepositories": [
+    "crazyflie_tools",
+    "crazyflie_cpp",
+    "crazyflie-link-cpp",
+    "pybind11",
+    "libusb"
+  ],
+  "files.associations": {
+    "chrono": "cpp",
+    "bitset": "cpp",
+    "optional": "cpp",
+    "memory": "cpp",
+    "future": "cpp"
+  }
 }
