@@ -13,5 +13,5 @@
     "memory": "cpp",
     "future": "cpp"
   },
-  "cmake.sourceDirectory": "/Users/alexwang/Desktop/College/Sophomore/Breuer Lab/crazyswarm2/crazyflie"
+  "cmake.sourceDirectory": "/ros_ws/src/crazyflie"
 }
