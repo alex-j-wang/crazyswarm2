@@ -21,7 +21,7 @@ ROS_SOURCE_CMD := source /opt/ros/humble/setup.sh
 
 # Start the container
 run: check-image
-	@docker run --rm -it -d \
+	@docker run -it -d \
 		--volume "$(CURRENT_DIR):$(ROS_WS_PATH):rw" \
 		--name $(DOCKER_REPOSITORY) \
 		$(DOCKER_IMAGE) bash

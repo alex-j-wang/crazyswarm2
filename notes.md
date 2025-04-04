@@ -85,5 +85,6 @@ TODO:
 - Update python scripts
 - Make list of publishers/subscribers
 - Make identical Python nodes in ros2
+- Update hardcoded paths
 
 transition Makefile to bash scripts
