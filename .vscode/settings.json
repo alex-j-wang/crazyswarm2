@@ -1,11 +1,5 @@
 {
-  "git.ignoredRepositories": [
-    "crazyflie_tools",
-    "crazyflie_cpp",
-    "crazyflie-link-cpp",
-    "pybind11",
-    "libusb"
-  ],
+  "git.detectSubmodules": false,
   "files.associations": {
     "chrono": "cpp",
     "bitset": "cpp",
@@ -13,5 +7,14 @@
     "memory": "cpp",
     "future": "cpp"
   },
-  "cmake.sourceDirectory": "/ros_ws/src/crazyflie"
+  "cmake.sourceDirectory": "/ros_ws/src/crazyflie",
+  "python.autoComplete.extraPaths": [
+    "/opt/ros/humble/lib/python3.10/site-packages",
+    "/opt/ros/humble/local/lib/python3.10/dist-packages"
+  ],
+  "python.analysis.extraPaths": [
+    "/opt/ros/humble/lib/python3.10/site-packages",
+    "/opt/ros/humble/local/lib/python3.10/dist-packages"
+  ],
+  "ros.distro": "humble"
 }

@@ -83,9 +83,12 @@ TODO:
 - Check Docker build log, see if anything in `requirements.txt` is unnecessary
 - Update crazyflie_mpc CMakeLists.txt and package.xml
 - Update python scripts
-- Make list of publishers/subscribers
-- Make identical Python nodes in ros2
-- Update hardcoded paths
+- Fix NODE import
+- Make sure crazyflie/joystick nodes work
+- Check over README
+- Transition to crazyswarm2 API
+- Use common config file(s)
 
 transition Makefile to bash scripts
 GeometriControl
+go through with a formatter

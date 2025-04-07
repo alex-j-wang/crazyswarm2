@@ -93,7 +93,7 @@ class GPControl(object):
 
         # MPC
         if self.downsample_cnt % 50 == 0: # This assumes update() to be called at 200Hz
-            opti = casadi.Opti()
+            opti = Opti()
             x = opti.variable(self.num_states, self.N_ctrl + 1)  # States
             u = opti.variable(self.num_inputs, self.N_ctrl)  # Control input
             p = opti.parameter(self.num_states, 1)  # Parameters

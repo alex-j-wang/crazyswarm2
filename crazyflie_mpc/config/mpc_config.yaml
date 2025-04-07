@@ -1,0 +1,21 @@
+/**:
+  ros__parameters:
+    control_frequency: 100.0  # Hz
+    controller_type: "geometric"  # Options: geometric, mpc, hybrid, gp
+    
+    # Quadrotor physical parameters
+    mass: 0.03  # kg
+    Ixx: 1.43e-5  # kg*m^2
+    Iyy: 1.43e-5  # kg*m^2
+    Izz: 2.89e-5  # kg*m^2
+    arm_length: 0.046  # meters
+    
+    # Geometric controller gains
+    pos_kp: 2.0
+    posz_kp: 4.0
+    geo_rollpitch_kp: 10.0
+    geo_yaw_kp: 50.0
+    
+    # Waypoint parameters
+    desired_speed: 0.5  # m/s
+    waypoint_radius: 0.05  # m
