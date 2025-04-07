@@ -89,6 +89,7 @@ TODO:
 - Transition to crazyswarm2 API
 - Use common config file(s)
 
+figure out Docker crashing when detaching on Linux
 transition Makefile to bash scripts
 GeometriControl
 go through with a formatter

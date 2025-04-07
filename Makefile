@@ -1,11 +1,14 @@
 UNAME_S := $(shell uname -s)
 
 ifeq ($(UNAME_S),Linux)
-    WORKERS := $(shell expr `nproc` - 2)
+	WORKERS := $(shell expr `nproc` - 2)
+	DOCKER_RUN_DETACH := 
 else ifeq ($(UNAME_S),Darwin)
-    WORKERS := $(shell expr `sysctl -n hw.ncpu` - 2)
+	WORKERS := $(shell expr `sysctl -n hw.ncpu` - 2)
+	DOCKER_RUN_DETACH := -d
 else
-    WORKERS := 1
+	WORKERS := 1
+	DOCKER_RUN_DETACH := -d
 endif
 
 # Set default variables
@@ -21,7 +24,7 @@ ROS_SOURCE_CMD := source /opt/ros/humble/setup.sh
 
 # Start the container
 run: check-image
-	@docker run -it -d \
+	@docker run -it $(DOCKER_RUN_DETACH) \
 		--volume "$(CURRENT_DIR):$(ROS_WS_PATH):rw" \
 		--name $(DOCKER_REPOSITORY) \
 		$(DOCKER_IMAGE) bash
@@ -39,7 +42,7 @@ check-image:
 build:
 	@echo "Building with $(WORKERS) workers"
 	@docker exec -it $(DOCKER_REPOSITORY) bash -c "$(ROS_SOURCE_CMD) && cd /ros_ws && colcon build --symlink-install --parallel-workers $(WORKERS) --cmake-args -DCMAKE_BUILD_TYPE=Debug"
-	
+
 # Run a shell inside the running container
 shell:
 	docker exec -it $(DOCKER_REPOSITORY) bash
