@@ -2,7 +2,7 @@ UNAME_S := $(shell uname -s)
 
 ifeq ($(UNAME_S),Linux)
 	WORKERS := $(shell expr `nproc` - 2)
-	DOCKER_RUN_DETACH := 
+	DOCKER_RUN_DETACH := --rm
 else ifeq ($(UNAME_S),Darwin)
 	WORKERS := $(shell expr `sysctl -n hw.ncpu` - 2)
 	DOCKER_RUN_DETACH := -d

@@ -10,3 +10,5 @@ casadi
 transforms3d
 git+https://github.com/DLu/tf_transformations.git
 torch
+rowan
+nicegui

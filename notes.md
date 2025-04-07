@@ -77,7 +77,13 @@ ros2 topic list
 ros2 topic echo
 ros2 bag record
 
+ps axf | grep docker | grep -v grep | awk '{print "kill -9 " $1}' | sudo sh
 systemctl --user start docker-desktop
+make run
+source /opt/ros/humble/setup.sh
+rm -rf build install log
+colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Debug
+source install/local_setup.bash
 
 TODO:
 - Check Docker build log, see if anything in `requirements.txt` is unnecessary

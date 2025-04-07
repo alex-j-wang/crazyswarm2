@@ -38,6 +38,7 @@ RUN apt-get update -q && \
     ros-humble-rclpy \
     ros-humble-ros-base \
     ros-humble-motion-capture-tracking \
+    ros-humble-joy \
     ros-dev-tools \
     libboost-all-dev \
     && rm -rf /var/lib/apt/lists/*
