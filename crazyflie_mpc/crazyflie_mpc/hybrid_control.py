@@ -2,7 +2,7 @@ from casadi import *
 from scipy.spatial.transform import Rotation
 from tf_transformations import euler_from_matrix
 import torch
-from NODE.NODE import *
+from resource.NODE import *
 
 class HybridControl(object):
     def __init__(self):
