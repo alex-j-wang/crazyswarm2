@@ -46,7 +46,7 @@ def generate_launch_description():
     # MPC demo node
     mpc_demo_node = Node(
         package='crazyflie_mpc',
-        executable='follow_waypoint',
+        executable='follow_waypoint.py',
         name='mpc_demo',
         namespace='crazyflie',
         parameters=[

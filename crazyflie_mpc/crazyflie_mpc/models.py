@@ -1,4 +1,4 @@
-from resource.NODE import *
+from NODE import *
 
 
 class RigidHybrid(ODEF):

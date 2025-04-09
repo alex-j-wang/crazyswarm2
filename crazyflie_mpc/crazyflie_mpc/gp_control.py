@@ -3,7 +3,7 @@ from casadi import *
 from tf_transformations import euler_from_matrix
 import sys
 import pickle
-from resource.NODE import *
+from NODE import *
 
 class GPControl(object):
     def __init__(self):

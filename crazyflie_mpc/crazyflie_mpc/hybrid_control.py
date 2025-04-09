@@ -2,7 +2,7 @@ from casadi import *
 from scipy.spatial.transform import Rotation
 from tf_transformations import euler_from_matrix
 import torch
-from resource.NODE import *
+from NODE import *
 
 class HybridControl(object):
     def __init__(self):
@@ -53,7 +53,7 @@ class HybridControl(object):
         ode             = vertcat(xdot, xdotdot)
         
         # loading neural network parameters
-        ode_torch = torch.load("/home/tom/catkin_ws/src/crazyflie_ros/crazyflie_mpc/src/knode_models/rigid_1layer_2traj.pth", map_location=torch.device('cpu'))['ode_train']
+        ode_torch = torch.load("/ros_ws/src/crazyflie_mpc/data/knode_models/rigid_1layer_2traj.pth", map_location=torch.device('cpu'))['ode_train']
         param_ls = []
         for _, layer in ode_torch.func.state_dict().items():
             param_ls.append(layer.detach().cpu().numpy())
