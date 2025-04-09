@@ -13,3 +13,4 @@ torch
 rowan
 nicegui
 cflib
+setuptools==58.2.0

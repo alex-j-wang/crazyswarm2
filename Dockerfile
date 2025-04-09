@@ -44,11 +44,11 @@ RUN apt-get update -q && \
     libboost-all-dev \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-
 # Set up workspace
 WORKDIR /ros_ws/src
+
+COPY requirements.txt .
+RUN pip install -r requirements.txt
 
 # Initialize rosdep
 RUN rosdep init && rosdep update
