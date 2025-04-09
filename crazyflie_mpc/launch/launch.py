@@ -39,7 +39,7 @@ def generate_launch_description():
             'backend': 'cflib',  # Use cflib backend
             'teleop': 'false',   # Disable teleop
             'gui': 'false',      # Disable GUI
-            'mocap': 'true' if use_mocap.perform(None) == 'True' else 'false'
+            'mocap': use_mocap
         }.items()
     )
 
