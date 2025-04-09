@@ -24,8 +24,9 @@ ROS_SOURCE_CMD := source /opt/ros/humble/setup.sh
 
 # Start the container
 run: check-image
-	@docker run -it $(DOCKER_RUN_DETACH) \
+	@docker run -it --privileged $(DOCKER_RUN_DETACH) \
 		--volume "$(CURRENT_DIR):$(ROS_WS_PATH):rw" \
+		--volume /dev/bus/usb:/dev/bus/usb \
 		--name $(DOCKER_REPOSITORY) \
 		$(DOCKER_IMAGE) bash
 

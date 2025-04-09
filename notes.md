@@ -85,6 +85,7 @@ rm -rf build install log
 colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Debug
 source install/local_setup.bash
 ros2 launch crazyflie_mpc launch.py
+ros2 launch crazyflie launch.py
 
 TODO:
 - Check Docker build log, see if anything in `requirements.txt` is unnecessary
