@@ -43,7 +43,7 @@ class GPControl(object):
         sampling_rate   = 0.4
         self.N_ctrl     = 3  # Control horizon (in number of timesteps)
 
-        with open('/home/tom/catkin_ws/src/crazyflie_ros/crazyflie_mpc/src/gp_models/gpModel_kinematic_expt_fil_82pts.pkl', 'rb') as f:
+        with open('/ros_ws/src/crazyflie_mpc/data/gp_models/gpModel_kinematic_expt_fil_82pts.pkl', 'rb') as f:
             gp = pickle.load(f)
 
         X_train             = gp.X_train_  # X_train
