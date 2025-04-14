@@ -38,7 +38,7 @@ source install/setup.bash
 To run the MPC controller with a simple trajectory:
 
 ```bash
-ros2 launch crazyflie_mpc simple_mpc.launch.py
+ros2 launch crazyflie_mpc trajectory_launch.py
 ```
 
 ### Select Trajectory Type
@@ -51,7 +51,7 @@ The package comes with several predefined trajectory types:
 You can select a trajectory type when launching:
 
 ```bash
-ros2 launch crazyflie_mpc simple_mpc.launch.py trajectory:=circle
+ros2 launch crazyflie_mpc trajectory_launch.py trajectory:=circle
 ```
 
 ### Full Integration with Crazyflie
@@ -59,7 +59,7 @@ ros2 launch crazyflie_mpc simple_mpc.launch.py trajectory:=circle
 To use with a real Crazyflie and motion capture system:
 
 ```bash
-ros2 launch crazyflie_mpc mpc_demo.launch.py uri:=radio://0/80/2M/E7E7E7E7E7 frame:=cf1 use_mocap:=true
+ros2 launch crazyflie_mpc launch.py uri:=radio://0/80/2M/E7E7E7E7E7 frame:=cf1 use_mocap:=true
 ```
 
 ### Controller Parameters

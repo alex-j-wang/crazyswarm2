@@ -28,10 +28,15 @@ class MPCDemo(Node):
         # frames and transforms
         self.declare_parameter('world_frame', 'world')
         self.declare_parameter('frame', '')
+        self.declare_parameter('trajectory_type', 'circle')
+        self.declare_parameter('controller_type', 'geometric')
+        self.declare_parameter('control_frequency', 100.0)
         
         self.worldFrame = self.get_parameter('world_frame').get_parameter_value().string_value
         quad_name = self.get_parameter('frame').get_parameter_value().string_value
         self.frame = quad_name
+        self.trajectory_type = self.get_parameter('trajectory_type').get_parameter_value().string_value
+        self.controller_type = self.get_parameter('controller_type').get_parameter_value().string_value
         
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
@@ -57,58 +62,12 @@ class MPCDemo(Node):
         self.m_thrust = 0
         self.m_startZ = 0
         
-        t_final = 12
-        radius = 0.5
-        height = 0.55
-        center_x = 0.2172 #0.1728 # 0.2172
-        center_y = 4.5455#7.8015 # 4.5455
-        t_plot = np.linspace(0, t_final, num=500)
-        # circle center of the circle is 0.2172, 4.5455
-        x_traj = radius * np.cos(t_plot) + center_x
-        y_traj = radius * np.sin(t_plot) + center_y
-  
-        z_traj = np.zeros((len(t_plot),)) + height
-        points = np.stack((x_traj, y_traj, z_traj), axis=1)
-        points[-1, 2] = 0.2
-        #points = np.array([  # points for generating trajectory
-        #                   [-1.409, 2.826, 0.55],
-        #                   [1.609, 2.826, 0.55],
-        #                   [1.609, 5.826, 0.55],
-        #                   [-1.409, 5.826, 0.55],
-        #                   [-1.409, 2.826, 0.55],
-        #                   [-1.409, 2.826, 0.3],
-        #                   [-1.409, 2.826, 0.0]])
-        rl_pt_count = 12
-        rl_x = np.ones([rl_pt_count*2-1,1])*0.1376
-        rl_z = np.ones([rl_pt_count*2-1,1])*0.7
-        rl_y_to = np.linspace(1.80, 6.73, rl_pt_count)
-        rl_y_fro = np.linspace(rl_y_to[-2], 1.80, rl_pt_count-1)
-        rl_y = np.concatenate([rl_y_to, rl_y_fro], 0)
-        rl_points = np.concatenate([rl_x, rl_y.reshape([-1, 1]), rl_z], 1)
-        rl_points[-2,2] = 0.4
-        rl_points[-1,2] = 0.2  # rl_points are for back and forth in y
-
-        updown_count = 8
-        max_h = 2.3
-        min_h = 0.4
-        up_z_s = np.linspace(min_h, max_h, updown_count).reshape([-1,1])
-        down_z = np.linspace(up_z_s[-2], min_h, updown_count-1).reshape([-1,1])
-        up_z = np.linspace(down_z[-2], max_h, updown_count-1).reshape([-1,1])
-        
-        updown_z = np.concatenate([up_z_s, down_z, 
-                                   up_z, down_z, 
-                                   up_z, down_z, 
-                                   up_z, down_z],0)
-        updown_len = len(updown_z)
-        updown_x = np.ones([updown_len,1]) * 0.1376
-        updown_y = np.ones([updown_len,1]) * 1.80
-        # updown_points are for back and forth in z
-        updown_points = np.concatenate([updown_x, updown_y, updown_z], 1)
-
+        # Get trajectory points based on trajectory type
+        points = self.get_trajectory_points()
         self.traj = self.generate_traj(points)  # trajectory
         
         ############# CONTROLLER ########### 
-        self.controller = GeometriControl()  # controller
+        self.controller = self.create_controller()
         
         self.initial_state = {'x': np.array([0, 0, 0]), # positions
                               'v': np.array([0, 0, 0]), # velocities
@@ -119,7 +78,189 @@ class MPCDemo(Node):
         self.prev_pos = self.initial_state['x']
         self.prev_vel = np.zeros([3,])
         self.get_logger().info("=============== MPC Demo Initialized ===============")
+        self.get_logger().info(f"Trajectory type: {self.trajectory_type}")
+        self.get_logger().info(f"Controller type: {self.controller_type}")
     
+    def create_controller(self):
+        controller_type = self.controller_type
+        if controller_type == "mpc":
+            self.get_logger().info("Using MPC controller")
+            return MPControl()
+        elif controller_type == "hybrid":
+            self.get_logger().info("Using Hybrid controller")
+            return HybridControl()
+        elif controller_type == "gp":
+            self.get_logger().info("Using GP controller")
+            return GPControl()
+        else:
+            self.get_logger().info("Using Geometric controller")
+            return GeometriControl()
+    
+    def get_trajectory_points(self):
+        """
+        Get trajectory points based on the trajectory type
+        """
+        trajectory_type = self.trajectory_type
+        self.get_logger().info(f"Loading trajectory: {trajectory_type}")
+        
+        if trajectory_type == "circle":
+            # Try to get circle parameters from config
+            try:
+                radius = self.get_parameter("trajectories.circle.radius").value
+                height = self.get_parameter("trajectories.circle.height").value
+                center = self.get_parameter("trajectories.circle.center").value
+                duration = self.get_parameter("trajectories.circle.duration").value
+            except:
+                # Use defaults if parameters not found
+                radius = 0.5
+                height = 0.55
+                center = [0.2172, 4.5455, 0.55]
+                duration = 12.0
+                
+            t_plot = np.linspace(0, duration, num=500)
+            x_traj = radius * np.cos(t_plot) + center[0]
+            y_traj = radius * np.sin(t_plot) + center[1]
+            z_traj = np.zeros((len(t_plot),)) + height
+            points = np.stack((x_traj, y_traj, z_traj), axis=1)
+            points[-1, 2] = 0.2  # End with lower height
+            return points
+            
+        elif trajectory_type == "square":
+            try:
+                # Get individual points for square trajectory
+                points = []
+                point_index = 0
+                
+                while True:
+                    param_name = f"trajectories.square.point_{point_index}"
+                    try:
+                        point = self.get_parameter(param_name).value
+                        points.append(point)
+                        point_index += 1
+                    except:
+                        break
+                
+                if not points:  # If no points found, use default
+                    points = [
+                        [-1.409, 2.826, 0.55],
+                        [1.609, 2.826, 0.55],
+                        [1.609, 5.826, 0.55],
+                        [-1.409, 5.826, 0.55],
+                        [-1.409, 2.826, 0.55],
+                        [-1.409, 2.826, 0.3],
+                        [-1.409, 2.826, 0.0]
+                    ]
+                
+                return np.array(points)
+            except Exception as e:
+                self.get_logger().error(f"Error loading square trajectory: {e}")
+                # Default square trajectory
+                return np.array([
+                    [-1.409, 2.826, 0.55],
+                    [1.609, 2.826, 0.55],
+                    [1.609, 5.826, 0.55],
+                    [-1.409, 5.826, 0.55],
+                    [-1.409, 2.826, 0.55],
+                    [-1.409, 2.826, 0.3],
+                    [-1.409, 2.826, 0.0]
+                ])
+            
+        elif trajectory_type == "linear":
+            try:
+                start = self.get_parameter("trajectories.linear.start").value
+                end = self.get_parameter("trajectories.linear.end").value
+                steps = self.get_parameter("trajectories.linear.steps").value
+            except:
+                start = [0.1376, 1.80, 0.7]
+                end = [0.1376, 6.73, 0.7]
+                steps = 12
+                
+            # Generate linear path
+            rl_pt_count = steps
+            rl_x = np.ones([rl_pt_count*2-1, 1]) * start[0]
+            rl_z = np.ones([rl_pt_count*2-1, 1]) * start[2]
+            rl_y_to = np.linspace(start[1], end[1], rl_pt_count)
+            rl_y_fro = np.linspace(rl_y_to[-2], start[1], rl_pt_count-1)
+            rl_y = np.concatenate([rl_y_to, rl_y_fro], 0)
+            points = np.concatenate([rl_x, rl_y.reshape([-1, 1]), rl_z], 1)
+            points[-2, 2] = 0.4
+            points[-1, 2] = 0.2
+            return points
+            
+        elif trajectory_type == "figure8":
+            try:
+                center = self.get_parameter("trajectories.figure8.center").value
+                scale = self.get_parameter("trajectories.figure8.scale").value
+                duration = self.get_parameter("trajectories.figure8.duration").value
+            except:
+                center = [0.0, 0.0, 0.5]
+                scale = [0.8, 0.4, 0.0]
+                duration = 10.0
+                
+            # Generate figure 8 path
+            t = np.linspace(0, 2*np.pi, 500)
+            x = center[0] + scale[0] * np.sin(t)
+            y = center[1] + scale[1] * np.sin(t) * np.cos(t)
+            z = np.ones_like(t) * center[2]
+            points = np.vstack([x, y, z]).T
+            return points
+            
+        elif trajectory_type == "spiral":
+            try:
+                center = self.get_parameter("trajectories.spiral.center").value
+                radius_start = self.get_parameter("trajectories.spiral.radius_start").value
+                radius_end = self.get_parameter("trajectories.spiral.radius_end").value
+                height_start = self.get_parameter("trajectories.spiral.height_start").value
+                height_end = self.get_parameter("trajectories.spiral.height_end").value
+                revolutions = self.get_parameter("trajectories.spiral.revolutions").value
+                duration = self.get_parameter("trajectories.spiral.duration").value
+            except:
+                center = [0.0, 0.0, 0.5]
+                radius_start = 0.2
+                radius_end = 0.8
+                height_start = 0.5
+                height_end = 1.5
+                revolutions = 3
+                duration = 15.0
+                
+            # Generate spiral path
+            t = np.linspace(0, 2*np.pi*revolutions, 500)
+            radius = np.linspace(radius_start, radius_end, len(t))
+            height = np.linspace(height_start, height_end, len(t))
+            x = center[0] + radius * np.cos(t)
+            y = center[1] + radius * np.sin(t)
+            z = height
+            points = np.vstack([x, y, z]).T
+            return points
+            
+        elif trajectory_type == "hover":
+            try:
+                position = self.get_parameter("trajectories.hover.position").value
+                duration = self.get_parameter("trajectories.hover.duration").value
+            except:
+                position = [0.0, 0.0, 0.5]
+                duration = 10.0
+                
+            # Generate simple hover path (just one point)
+            points = np.array([position])
+            return points
+        
+        else:
+            # Default to circle if trajectory not recognized
+            self.get_logger().warning(f"Trajectory type '{trajectory_type}' not recognized. Using circle.")
+            t_final = 12
+            radius = 0.5
+            height = 0.55
+            center_x = 0.2172
+            center_y = 4.5455
+            t_plot = np.linspace(0, t_final, num=500)
+            x_traj = radius * np.cos(t_plot) + center_x
+            y_traj = radius * np.sin(t_plot) + center_y
+            z_traj = np.zeros((len(t_plot),)) + height
+            points = np.stack((x_traj, y_traj, z_traj), axis=1)
+            points[-1, 2] = 0.2
+            return points
+
     def timer_callback(self):
         # Check and update state machine
         if self.m_state == 0:

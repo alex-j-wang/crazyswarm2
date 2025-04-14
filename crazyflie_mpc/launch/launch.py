@@ -28,7 +28,7 @@ def generate_launch_description():
     use_mocap = LaunchConfiguration('use_mocap')
     
     # Define config file
-    config_path = os.path.join(pkg_share, 'config', 'mpc_config.yaml')
+    controller_config = os.path.join(pkg_share, 'config', 'mpc_config.yaml')
 
     # Include main crazyflie launch file
     crazyflie_launch = IncludeLaunchDescription(
@@ -52,7 +52,7 @@ def generate_launch_description():
         parameters=[
             {'frame': frame},
             {'world_frame': world_frame},
-            config_path
+            controller_config
         ],
         output='screen'
     )

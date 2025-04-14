@@ -95,9 +95,12 @@ TODO:
 - Make sure crazyflie/joystick nodes work
 - Check over README
 - Transition to crazyswarm2 API
-- Use common config file(s)
+- Use common config file(s) / take config params from `crazyflies.yaml`
 
 figure out Docker crashing when detaching on Linux
 transition Makefile to bash scripts
 GeometriControl
 go through with a formatter
+
+ros2 launch crazyflie_mpc trajectory_launch.py trajectory:=figure8
+ros2 launch crazyflie_mpc trajectory_launch.py trajectory:=circle controller:=geometric

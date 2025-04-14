@@ -1,0 +1,40 @@
+/**:
+  ros__parameters:
+    trajectories:
+      circle:
+        radius: 0.5
+        height: 0.55
+        center: [0.2172, 4.5455, 0.55]
+        duration: 12.0
+
+      square:
+        point_0: [-1.409, 2.826, 0.55]
+        point_1: [1.609, 2.826, 0.55]
+        point_2: [1.609, 5.826, 0.55]
+        point_3: [-1.409, 5.826, 0.55]
+        point_4: [-1.409, 2.826, 0.55]
+        point_5: [-1.409, 2.826, 0.3]
+        point_6: [-1.409, 2.826, 0.0]
+
+      linear:
+        start: [0.1376, 1.80, 0.7]
+        end: [0.1376, 6.73, 0.7]
+        steps: 12
+
+      figure8:
+        center: [0.0, 0.0, 0.5]
+        scale: [0.8, 0.4, 0.0]
+        duration: 10.0
+
+      spiral:
+        center: [0.0, 0.0, 0.5]
+        radius_start: 0.2
+        radius_end: 0.8
+        height_start: 0.5
+        height_end: 1.5
+        revolutions: 3
+        duration: 15.0
+
+      hover:
+        position: [0.0, 0.0, 0.5]
+        duration: 10.0
