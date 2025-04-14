@@ -66,3 +66,4 @@ COPY . .
 WORKDIR /ros_ws/
 RUN . /opt/ros/humble/setup.sh && \
     colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Debug
+RUN echo "source /opt/ros/humble/setup.sh && source install/local_setup.bash" >> ~/.bashrc
