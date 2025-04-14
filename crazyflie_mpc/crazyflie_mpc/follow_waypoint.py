@@ -292,7 +292,6 @@ class MPCDemo(Node):
             
             points[:, 2] += 0.35
             self.traj = self.generate_traj(points)
-            self.get_logger().info(f"Trajectory shape {self.traj.points.shape}!")
 
         flat = self.sanitize_trajectory_dic(self.traj.update(curr_time-self.t0))
 

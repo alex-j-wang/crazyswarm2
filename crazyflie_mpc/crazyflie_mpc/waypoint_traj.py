@@ -23,11 +23,7 @@ def get_min_jerk(points, t):
 
 class WaypointTraj(object):
     def __init__(self, points):
-        cleaned_points = [points[0]]
-        for pt in points[1:]:
-            if not np.allclose(pt, cleaned_points[-1]):
-                cleaned_points.append(pt)
-        self.points = np.array(cleaned_points)
+        self.points         = points
         self.desired_spd    = 0.5 # 0.75, 3.0
 
         num_pts     = self.points.shape[0]
