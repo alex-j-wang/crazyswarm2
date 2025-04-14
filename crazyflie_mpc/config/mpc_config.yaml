@@ -1,7 +1,8 @@
-/**:
+/crazyflie/mpc_demo:
   ros__parameters:
-    control_frequency: 100.0  # Hz
+    trajectory_type: "circle"
     controller_type: "geometric"  # Options: geometric, mpc, hybrid, gp
+    control_frequency: 100.0  # Hz    
     
     # Quadrotor physical parameters
     mass: 0.03  # kg

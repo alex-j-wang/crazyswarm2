@@ -14,15 +14,11 @@ def generate_launch_description():
     # Launch Arguments
     frame_arg = DeclareLaunchArgument('frame', default_value='crazyflie', description='Frame name')
     world_frame_arg = DeclareLaunchArgument('world_frame', default_value='world', description='World frame name')
-    trajectory_arg = DeclareLaunchArgument('trajectory', default_value='circle', description='Trajectory type (circle, square, linear, figure8, spiral, hover)')
-    controller_arg = DeclareLaunchArgument('controller', default_value='geometric', description='Controller type (geometric, mpc, hybrid, gp)')
     use_sim_arg = DeclareLaunchArgument('use_sim', default_value='true', description='Use simulation instead of real hardware')
     
     # Get launch configurations
     frame = LaunchConfiguration('frame')
     world_frame = LaunchConfiguration('world_frame')
-    trajectory = LaunchConfiguration('trajectory')
-    controller = LaunchConfiguration('controller')
     use_sim = LaunchConfiguration('use_sim')
     
     # Define config files
@@ -38,9 +34,6 @@ def generate_launch_description():
         parameters=[
             {'frame': frame},
             {'world_frame': world_frame},
-            {'trajectory_type': trajectory},
-            {'controller_type': controller},
-            {'control_frequency': 100.0},
             controller_config,
             trajectory_config
         ],
@@ -70,8 +63,6 @@ def generate_launch_description():
         # Launch arguments
         frame_arg,
         world_frame_arg,
-        trajectory_arg,
-        controller_arg,
         use_sim_arg,
         
         # Nodes

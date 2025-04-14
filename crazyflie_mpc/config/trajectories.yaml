@@ -1,4 +1,4 @@
-/**:
+/crazyflie/mpc_demo:
   ros__parameters:
     trajectories:
       circle:
