@@ -178,6 +178,9 @@ class MPCDemo(Node):
             points = np.array([position])
             return points
         
+        elif trajectory_type == "tracking": # TODO
+            return [[0, 0, 0]]
+        
         else:
             # Default to circle if trajectory not recognized
             self.get_logger().warning(f"Trajectory type '{trajectory_type}' not recognized. Using circle.")
@@ -201,7 +204,7 @@ class MPCDemo(Node):
         elif self.m_state == 3:
             self.land()
         elif self.m_state == 1:
-            self.automatic(True)
+            self.automatic(self.trajectory_type == 'tracking')
         elif self.m_state == 2:
             self.takeoff()
 
@@ -286,84 +289,79 @@ class MPCDemo(Node):
         curr_time = self.get_clock().now().nanoseconds / 1e9
         dt = curr_time - self.prev_time
         if target_tracking:
+            # For target tracking, create a trajectory between current position and target
             interp_time = [1,4]
-            # print("self:, target:", self.curr_pos, self.target_pos)
             points = interp1d(interp_time, np.vstack([self.curr_pos, self.target_pos]), axis=0)([1,2,3,4])
-            
+            # Add altitude offset for safety
             points[:, 2] += 0.35
+            # Generate new trajectory to target
             self.traj = self.generate_traj(points)
+            self.get_logger().debug(f"Target tracking: moving to {self.target_pos}")
 
         flat = self.sanitize_trajectory_dic(self.traj.update(curr_time-self.t0))
 
-        try:
-            # Getting position from tf
-            transform = self.tf_buffer.lookup_transform(
-                self.world_frame,
-                self.frame,
-                rclpy.time.Time())
-            
-            tf_pos = [transform.transform.translation.x, transform.transform.translation.y, transform.transform.translation.z]
-            tf_quat = [transform.transform.rotation.x, transform.transform.rotation.y, transform.transform.rotation.z, transform.transform.rotation.w]
-            
-            vicon_pos = self.curr_pos
-            vicon_quat = self.curr_quat
-            pos = tf_pos
-            quat = tf_quat
+        # Get position from tf
+        transform = self.tf_buffer.lookup_transform(
+            self.world_frame,
+            self.frame,
+            rclpy.time.Time())
+        
+        pos = [transform.transform.translation.x, transform.transform.translation.y, transform.transform.translation.z]
+        quat = [transform.transform.rotation.x, transform.transform.rotation.y, transform.transform.rotation.z, transform.transform.rotation.w]
 
-            v = (np.array(pos)-np.array(self.prev_pos))/dt  # velocity estimate
-            v_est_sum = np.sum(v)
-            if v_est_sum == 0.0:  # only update velocity if tf pos has changed
-                v = self.prev_vel
-            
-            # clipping
-            v = np.clip(v, -0.7, 0.7)
-            
-            curr_state = {
-                        'x': np.array(pos),
-                        'v': v,
-                        'q': np.array(quat),
-                        'w': self.angular_vel}
-     
-            # controller update
-            u = self.controller.update(curr_time, curr_state, flat)
-            roll = u['euler'][0]
-            pitch = u['euler'][1]
-            yaw = u['euler'][2]
-            thrust = u['cmd_thrust']
-            r_ddot_des = u['r_ddot_des']
-            u1 = u['cmd_thrust']
+        v = (np.array(pos) - np.array(self.prev_pos))/dt # velocity estimate
+        v_est_sum = np.sum(np.abs(v))
+        if v_est_sum < 1e-6:
+            v = self.prev_vel
+        
+        v = np.clip(v, -0.7, 0.7)
+        
+        curr_state = {
+            'x': np.array(pos),
+            'v': v,
+            'q': np.array(quat),
+            'w': self.angular_vel
+        }
+    
+        # Update controller
+        u = self.controller.update(curr_time, curr_state, flat)
+        
+        # Extract control values
+        roll = float(u['euler'][0])
+        pitch = float(u['euler'][1])
+        yaw = float(u['euler'][2])
+        assert(u['cmd_thrust'].size == 1)
+        thrust = float(u['cmd_thrust'][0])
+        r_ddot_des = u['r_ddot_des']
 
-            def map_u1(u1):  # mapping control thrust output to cmd_vel thrust
-                # u1 ranges from -0.2 to 0.2
-                trim_cmd = 53000 # was 43000
-                min_cmd = 20000 # was 10000
-                u1_trim = 0.327
-                c = min_cmd
-                m = (trim_cmd - min_cmd)/u1_trim
-                mapped_u1 = u1*m + c
-                if mapped_u1 > 60000:
-                    mapped_u1 = 60000
-                return mapped_u1
+        # Create and publish command
+        msg = Twist()
+        msg.linear.x = np.clip(np.degrees(pitch), -10., 10.)  # pitch
+        msg.linear.y = np.clip(np.degrees(roll), -10., 10.)  # roll
+        msg.linear.z = self.map_u1(thrust)
+        msg.angular.z = np.degrees(0.)  # hardcoding yawrate to be 0 for now
+        self.cmd_pub.publish(msg) # publishing msg to the crazyflie
 
+        # Log data for debugging and visualization
+        self.log_ros_info(roll, pitch, yaw, r_ddot_des, v, msg, flat, pos, quat, thrust)
+        
+        # Update state variables for next iteration if we have valid data
+        if v_est_sum > 1e-6:
+            self.prev_vel = v
+            self.prev_time = curr_time
+            self.prev_pos = pos
 
-            # publish command
-            msg = Twist()
-            msg.linear.x = np.clip(np.degrees(pitch), -10., 10.)  # pitch
-            msg.linear.y = np.clip(np.degrees(roll), -10., 10.)  # roll
-            msg.linear.z = map_u1(thrust)
-            msg.angular.z = np.degrees(0.) # hardcoding yawrate to be 0 for now
-            self.cmd_pub.publish(msg) # publishing msg to the crazyflie
-
-            # logging
-            self.log_ros_info(roll, pitch, yaw, r_ddot_des, v, msg, flat, tf_pos, tf_quat, u1)
-            
-            if v_est_sum != 0:  # only update previous values if tf pos has changed
-                self.prev_vel = v
-                self.prev_time = curr_time
-                self.prev_pos = pos
-                
-        except Exception as e:
-            self.get_logger().error(f"Error in automatic function: {e}")
+    def map_u1(self, u1):  # mapping control thrust output to cmd_vel thrust
+        # u1 ranges from -0.2 to 0.2
+        trim_cmd = 53000 # was 43000
+        min_cmd = 20000 # was 10000
+        u1_trim = 0.327
+        c = min_cmd
+        m = (trim_cmd - min_cmd)/u1_trim
+        mapped_u1 = u1*m + c
+        if mapped_u1 > 60000:
+            mapped_u1 = 60000
+        return mapped_u1
 
     def idle(self):
         '''
@@ -418,7 +416,7 @@ class MPCDemo(Node):
         return trajectory_dic
 
 
-    def log_ros_info(self, roll, pitch, yaw, r_ddot_des, est_v, cmd_msg, flat, tf_pos, tf_quat, u1):
+    def log_ros_info(self, roll, pitch, yaw, r_ddot_des, est_v, cmd_msg, flat, tf_pos, tf_quat, thrust):
         '''
         logging information from this demo
         '''
@@ -450,7 +448,7 @@ class MPCDemo(Node):
         cmd_stamped_msg.twist.linear.y = cmd_msg.linear.y
         cmd_stamped_msg.twist.linear.z = cmd_msg.linear.z
         cmd_stamped_msg.twist.angular.z = cmd_msg.angular.z
-        cmd_stamped_msg.twist.angular.x = u1
+        cmd_stamped_msg.twist.angular.x = thrust
 
         # logging waypoints
         traj_msg = TwistStamped()
