@@ -1,6 +1,6 @@
 /crazyflie/mpc_demo:
   ros__parameters:
-    trajectory_type: "circle"
+    trajectory_type: "hover"
     controller_type: "geometric"  # Options: geometric, mpc, hybrid, gp
     control_frequency: 100.0  # Hz    
     

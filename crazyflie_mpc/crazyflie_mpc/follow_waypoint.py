@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import numpy as np
 import rclpy
+import rclpy.duration
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import TwistStamped
@@ -34,12 +35,13 @@ class MPCDemo(Node):
         self.frame = quad_name
         self.trajectory_type = self.get_parameter('trajectory_type').get_parameter_value().string_value
         self.controller_type = self.get_parameter('controller_type').get_parameter_value().string_value
+        self.control_frequency = self.get_parameter('control_frequency').value
         
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
         
         # subscribers and publishers
-        self.timer = self.create_timer(1.0/370.0, self.timer_callback)
+        self.timer = self.create_timer(1.0 / self.control_frequency, self.timer_callback)
         self.angular_vel = np.zeros([3,])  # angular velocity updated by imu subscriber
         self.curr_pos = np.zeros([3,])
         self.target_pos = np.zeros([3,])
@@ -47,15 +49,15 @@ class MPCDemo(Node):
         self.est_vel_pub = self.create_publisher(TwistStamped, 'est_vel', 1)  # publishing estimated velocity
         self.u_pub = self.create_publisher(TwistStamped, 'u_euler', 1)  # publishing stamped 
         self.cmd_stamped_pub = self.create_publisher(TwistStamped, 'cmd_vel_stamped', 1)  # publishing time stamped cmd_vel
-        self.imu_sub = self.create_subscription(Imu, '/crazyflie/imu', self.imu_callback, 10)  # subscribing imu
-        self.cmd_pub = self.create_publisher(Twist, 'cmd_vel', 1)  # publishing to cmd_vel to control crazyflie
+        self.imu_sub = self.create_subscription(Imu, f'/{quad_name}/imu', self.imu_callback, 10)  # subscribing imu
+        self.cmd_pub = self.create_publisher(Twist, f'/{quad_name}/cmd_vel_legacy', 1)  # publishing to cmd_vel to control crazyflie
         self.goal_pub = self.create_publisher(TwistStamped, 'goal', 1)  # publishing waypoints along the trajectory        
-        self.target_sub = self.create_subscription(PoseStamped, "/vicon/crazy_target/pose", self.target_callback, 10)
-        self.vicon_sub = self.create_subscription(PoseStamped, "/vicon/" + quad_name + "/pose", self.vicon_callback, 10) 
+        self.target_sub = self.create_subscription(PoseStamped, "/vicon/crazy_target/pose", self.target_callback, 10) # TODO: set correctly
+        self.vicon_sub = self.create_subscription(PoseStamped, f'/vicon/{quad_name}/{quad_name}/pose', self.vicon_callback, 10) 
         self.tf_pub = self.create_publisher(PoseStamped, 'tf_pos', 1)
         
         # controller and waypoint
-        self.m_state = 0 # Idle: 0, Automatic: 1, TakingOff: 2, Landing: 3
+        self.m_state = 1 # Idle: 0, Automatic: 1, TakingOff: 2, Landing: 3
         self.m_thrust = 0
         self.m_startZ = 0
         
@@ -172,7 +174,6 @@ class MPCDemo(Node):
             
         elif trajectory_type == "hover":
             position = self.get_parameter("trajectories.hover.position").value
-            duration = self.get_parameter("trajectories.hover.duration").value
                 
             # Generate simple hover path (just one point)
             points = np.array([position])
@@ -301,11 +302,15 @@ class MPCDemo(Node):
         flat = self.sanitize_trajectory_dic(self.traj.update(curr_time-self.t0))
 
         # Get position from tf
-        transform = self.tf_buffer.lookup_transform(
-            self.world_frame,
-            self.frame,
-            rclpy.time.Time())
-        
+        if self.tf_buffer.can_transform(self.world_frame, self.frame, rclpy.time.Time(), rclpy.duration.Duration(seconds=2.0)):
+            transform = self.tf_buffer.lookup_transform(
+                self.world_frame,
+                self.frame,
+                rclpy.time.Time())
+        else:
+            self.get_logger().warn(f"Transform not available within timeout.")
+            return
+
         pos = [transform.transform.translation.x, transform.transform.translation.y, transform.transform.translation.z]
         quat = [transform.transform.rotation.x, transform.transform.rotation.y, transform.transform.rotation.z, transform.transform.rotation.w]
 

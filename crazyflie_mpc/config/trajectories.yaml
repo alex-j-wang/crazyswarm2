@@ -37,4 +37,3 @@
 
       hover:
         position: [0.0, 0.0, 0.5]
-        duration: 10.0

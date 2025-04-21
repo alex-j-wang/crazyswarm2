@@ -12,7 +12,7 @@ def generate_launch_description():
     pkg_share = get_package_share_directory('crazyflie_mpc')
     
     # Launch Arguments
-    frame_arg = DeclareLaunchArgument('frame', default_value='crazyflie', description='Frame name')
+    frame_arg = DeclareLaunchArgument('frame', default_value='cf18', description='Frame name')
     world_frame_arg = DeclareLaunchArgument('world_frame', default_value='world', description='World frame name')
     use_sim_arg = DeclareLaunchArgument('use_sim', default_value='true', description='Use simulation instead of real hardware')
     
@@ -46,7 +46,7 @@ def generate_launch_description():
         executable='static_transform_publisher',
         name='world_broadcaster',
         arguments=['0', '0', '0', '0', '0', '0', '1',
-                  'world', 'map']
+                  world_frame, frame]
     )
 
     # If using simulation, add a node to publish initial pose
