@@ -104,3 +104,5 @@ go through with a formatter
 
 ros2 launch crazyflie_mpc trajectory_launch.py trajectory:=figure8
 ros2 launch crazyflie_mpc trajectory_launch.py trajectory:=circle controller:=geometric
+
+notes for how to launch

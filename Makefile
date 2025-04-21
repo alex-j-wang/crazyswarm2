@@ -28,6 +28,7 @@ run: check-image
 		--volume "$(CURRENT_DIR):$(ROS_WS_PATH):rw" \
 		--volume /dev/bus/usb:/dev/bus/usb \
 		--name $(DOCKER_REPOSITORY) \
+		--network host \
 		$(DOCKER_IMAGE) bash
 
 # Look for dev container, build if it doesn't exist
