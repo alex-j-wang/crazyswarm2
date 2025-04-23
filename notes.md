@@ -118,3 +118,6 @@ Goals:
 - Easy to hook up any controller and test on prescribed trajectory
 
 zoxide
+access data package more elegantly!!!
+
+`export PYTHONPATH="/ros_ws/src/crazyflie_mpc/data:$PYTHONPATH"`

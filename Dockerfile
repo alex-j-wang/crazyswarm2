@@ -59,6 +59,9 @@ RUN rosdep init && rosdep update
 COPY . .
 RUN git submodule update --init --recursive
 
+WORKDIR /ros_ws/src/crazyflie_mpc
+RUN pip install data
+
 # Run install script and pass in the architecture
 # RUN ARCH=$(dpkg --print-architecture) && echo "Building driver with $ARCH" && /ros_ws/src/install_spot_ros2.sh --$ARCH
 
