@@ -57,7 +57,7 @@ class MPCDemo(Node):
         self.tf_pub = self.create_publisher(PoseStamped, 'tf_pos', 1)
         
         # controller and waypoint
-        self.m_state = 1 # Idle: 0, Automatic: 1, TakingOff: 2, Landing: 3
+        self.m_state = 0 # Idle: 0, Automatic: 1, TakingOff: 2, Landing: 3
         self.m_thrust = 0
         self.m_startZ = 0
         
@@ -365,7 +365,7 @@ class MPCDemo(Node):
         m = (trim_cmd - min_cmd)/u1_trim
         mapped_u1 = u1*m + c
         if mapped_u1 > 60000:
-            mapped_u1 = 60000
+            mapped_u1 = float(60000)
         return mapped_u1
 
     def idle(self):
