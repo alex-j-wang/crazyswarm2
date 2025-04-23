@@ -96,6 +96,8 @@ TODO:
 - Check over README
 - Transition to crazyswarm2 API
 - Use common config file(s) / take config params from `crazyflies.yaml`
+- Understand all magic numbers and add to config (including model filenames)
+- Add server to launch file(s)
 
 figure out Docker crashing when detaching on Linux
 transition Makefile to bash scripts
@@ -106,3 +108,13 @@ ros2 launch crazyflie_mpc trajectory_launch.py trajectory:=figure8
 ros2 launch crazyflie_mpc trajectory_launch.py trajectory:=circle controller:=geometric
 
 notes for how to launch
+get rid of try / except blocks
+
+don't hard code m_state
+
+Goals:
+- Make a template MPC Python program
+- API for inputs and outputs
+- Easy to hook up any controller and test on prescribed trajectory
+
+zoxide

@@ -1,18 +1,21 @@
 {
   "configurations": [
     {
-      "name": "ROS2",
+      "browse": {
+        "databaseFilename": "${default}",
+        "limitSymbolsToIncludedHeaders": false
+      },
       "includePath": [
         "${workspaceFolder}/**",
+        "/ros_ws/install/crazyflie_interfaces/include/**",
         "/opt/ros/humble/include/**",
-        "${workspaceFolder}/install/**/include",
-        "${workspaceFolder}/build/**/include"
+        "/usr/include/**"
       ],
-      "defines": [],
+      "name": "ROS",
+      "intelliSenseMode": "gcc-arm64",
       "compilerPath": "/usr/bin/gcc",
-      "cStandard": "gnu17",
-      "cppStandard": "gnu++17",
-      "intelliSenseMode": "linux-gcc-x64"
+      "cStandard": "gnu11",
+      "cppStandard": "c++14"
     }
   ],
   "version": 4
