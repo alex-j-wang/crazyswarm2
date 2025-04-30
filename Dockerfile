@@ -59,6 +59,7 @@ RUN rosdep init && rosdep update
 COPY . .
 RUN git submodule update --init --recursive
 
+# Install PyTorch models (added to PYTHONPATH at bottom)
 WORKDIR /ros_ws/src/crazyflie_mpc
 RUN pip install data
 
@@ -69,4 +70,4 @@ RUN pip install data
 WORKDIR /ros_ws/
 RUN . /opt/ros/humble/setup.sh && \
     colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Debug
-RUN echo "source /opt/ros/humble/setup.sh && source /ros_ws/install/local_setup.bash" >> ~/.bashrc
+RUN echo "source /opt/ros/humble/setup.sh && source /ros_ws/install/local_setup.bash && export PYTHONPATH=\"/ros_ws/src/crazyflie_mpc/data:$PYTHONPATH\"" >> ~/.bashrc

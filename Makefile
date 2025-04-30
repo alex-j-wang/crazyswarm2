@@ -43,7 +43,7 @@ check-image:
 # Build source files inside the running container
 build:
 	@echo "Building with $(WORKERS) workers"
-	@cd /ros_ws && colcon build --symlink-install --parallel-workers $(WORKERS) --cmake-args -DCMAKE_BUILD_TYPE=Debug
+	@cd /ros_ws && rm -rf build log && colcon build --symlink-install --parallel-workers $(WORKERS) --cmake-args -DCMAKE_BUILD_TYPE=Debug
 
 # Run a shell inside the running container
 shell:
