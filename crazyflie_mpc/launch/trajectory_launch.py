@@ -12,7 +12,8 @@ def generate_launch_description():
     pkg_share = get_package_share_directory('crazyflie_mpc')
     
     # Launch Arguments
-    frame_arg = DeclareLaunchArgument('frame', default_value='cf18', description='Frame name')
+    # TODO: infer default_value from config
+    frame_arg = DeclareLaunchArgument('frame', default_value='cf13', description='Frame name')
     world_frame_arg = DeclareLaunchArgument('world_frame', default_value='world', description='World frame name')
     use_sim_arg = DeclareLaunchArgument('use_sim', default_value='true', description='Use simulation instead of real hardware')
     

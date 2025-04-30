@@ -80,9 +80,9 @@ robots:
     initial_position: [-0.23, 0., 0.0]
     type: cf21 # see robot_types
   cf13:
-    enabled: false
+    enabled: true
     uri: radio://*/120/2M/E7E7E7E70D
-    initial_position: [1.0, 0.0, 0.0]
+    initial_position: [0.0, 0.0, 0.0]
     type: cf21
   cf14:
     enabled: false
@@ -105,7 +105,7 @@ robots:
     initial_position: [1.0, -1.0, 0.0]
     type: cf21_single_marker # see robot_types
   cf18:
-    enabled: true
+    enabled: false
     uri: radio://*/80/2M/E7E7E7E712
     initial_position: [0.0, 0.0, 0.0]
     type: cf21 # see robot_types

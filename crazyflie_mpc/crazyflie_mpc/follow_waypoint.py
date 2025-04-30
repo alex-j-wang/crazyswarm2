@@ -434,9 +434,9 @@ class MPCDemo(Node):
         u_msg.twist.angular.y = pitch
         u_msg.twist.angular.z = yaw
         # r_ddot_des is mapped to TwistStamped linear
-        u_msg.twist.linear.x = r_ddot_des[0]         
-        u_msg.twist.linear.y = r_ddot_des[1]
-        u_msg.twist.linear.z = r_ddot_des[2]
+        u_msg.twist.linear.x = float(r_ddot_des[0])         
+        u_msg.twist.linear.y = float(r_ddot_des[1])
+        u_msg.twist.linear.z = float(r_ddot_des[2])
         
         # logging estimate velocities
         est_v_msg = TwistStamped()
