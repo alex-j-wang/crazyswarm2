@@ -127,19 +127,24 @@ class MPCDemo(Node):
             return np.array(points)
         
         elif trajectory_type == "linear":
-            start = self.get_parameter("trajectories.linear.start").value
-            end = self.get_parameter("trajectories.linear.end").value
+            start = np.array(self.get_parameter("trajectories.linear.start").value)
+            end = np.array(self.get_parameter("trajectories.linear.end").value)
             steps = self.get_parameter("trajectories.linear.steps").value
 
-            rl_pt_count = steps
-            rl_x = np.ones([rl_pt_count*2-1, 1]) * start[0]
-            rl_z = np.ones([rl_pt_count*2-1, 1]) * start[2]
-            rl_y_to = np.linspace(start[1], end[1], rl_pt_count)
-            rl_y_fro = np.linspace(rl_y_to[-2], start[1], rl_pt_count-1)
-            rl_y = np.concatenate([rl_y_to, rl_y_fro], 0)
-            points = np.concatenate([rl_x, rl_y.reshape([-1, 1]), rl_z], 1)
-            points[-2, 2] = 0.4
-            points[-1, 2] = 0.2
+            # Interpolate forward trajectory
+            to_points = np.linspace(start, end, steps)
+
+            # Interpolate reverse trajectory (excluding the duplicated final point)
+            fro_points = np.linspace(end, start, steps)[1:]
+
+            # Concatenate forward + return
+            points = np.vstack([to_points, fro_points])
+
+            # Add descent to last two points in Z
+            if len(points) >= 2:
+                points[-2, 2] = 0.4
+                points[-1, 2] = 0.2
+
             return points
             
         elif trajectory_type == "figure8":
