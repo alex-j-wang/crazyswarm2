@@ -129,34 +129,29 @@ class MPCDemo(Node):
         elif trajectory_type == "linear":
             start = np.array(self.get_parameter("trajectories.linear.start").value)
             end = np.array(self.get_parameter("trajectories.linear.end").value)
-            steps = self.get_parameter("trajectories.linear.steps").value
 
-            # Interpolate forward trajectory
-            to_points = np.linspace(start, end, steps)
-
-            # Interpolate reverse trajectory (excluding the duplicated final point)
-            fro_points = np.linspace(end, start, steps)[1:]
+            takeoff = np.linspace([0, 0, 0], start, 20)
+            landing = np.linspace(start, [0, 0, 0.2], 20)
 
             # Concatenate forward + return
-            points = np.vstack([to_points, fro_points])
-
-            # Add descent to last two points in Z
-            if len(points) >= 2:
-                points[-2, 2] = 0.4
-                points[-1, 2] = 0.2
+            points = np.vstack([takeoff, [end], landing])
 
             return points
             
         elif trajectory_type == "figure8":
             center = self.get_parameter("trajectories.figure8.center").value
             scale = self.get_parameter("trajectories.figure8.scale").value
-            duration = self.get_parameter("trajectories.figure8.duration").value
-                
+            
+            takeoff = np.linspace([0, 0, 0], center, 20)
+            landing = np.linspace(center, [0, 0, 0.2], 20)
+            
             t = np.linspace(0, 2*np.pi, 500)
             x = center[0] + scale[0] * np.sin(t)
             y = center[1] + scale[1] * np.sin(t) * np.cos(t)
             z = np.ones_like(t) * center[2]
-            points = np.vstack([x, y, z]).T
+            figure8 = np.vstack([x, y, z]).T
+
+            points = np.vstack([takeoff[:-1], figure8, landing[1:]])
             return points
             
         elif trajectory_type == "spiral":

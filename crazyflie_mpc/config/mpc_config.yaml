@@ -1,7 +1,7 @@
 /crazyflie/mpc_demo:
   ros__parameters:
-    trajectory_type: "hover"
-    controller_type: "mpc"  # Options: geometric, mpc, hybrid, gp
+    trajectory_type: "figure8"
+    controller_type: "mpc" # Options: geometric, mpc, hybrid, gp
     control_frequency: 200.0  # Hz    
     
     # Quadrotor physical parameters
