@@ -2,7 +2,7 @@
   ros__parameters:
     trajectory_type: "figure8"
     controller_type: "mpc" # Options: geometric, mpc, hybrid, gp
-    control_frequency: 200.0  # Hz    
+    control_frequency: 100.0  # Hz    
     
     # Quadrotor physical parameters
     mass: 0.03  # kg

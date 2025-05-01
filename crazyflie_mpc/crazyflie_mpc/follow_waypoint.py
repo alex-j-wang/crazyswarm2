@@ -52,8 +52,8 @@ class MPCDemo(Node):
         self.imu_sub = self.create_subscription(Imu, f'/{quad_name}/imu', self.imu_callback, 10)  # subscribing imu
         self.cmd_pub = self.create_publisher(Twist, f'/{quad_name}/cmd_vel_legacy', 1)  # publishing to cmd_vel to control crazyflie
         self.goal_pub = self.create_publisher(TwistStamped, 'goal', 1)  # publishing waypoints along the trajectory        
-        self.target_sub = self.create_subscription(PoseStamped, "/vicon/crazy_target/pose", self.target_callback, 10) # TODO: set correctly
-        self.vicon_sub = self.create_subscription(PoseStamped, f'/vicon/{quad_name}/{quad_name}/pose', self.vicon_callback, 10) 
+        # self.target_sub = self.create_subscription(PoseStamped, "/vicon/crazy_target/pose", self.target_callback, 10) # TODO: set correctly
+        # self.vicon_sub = self.create_subscription(PoseStamped, f'/vicon/{quad_name}/{quad_name}/pose', self.vicon_callback, 10) 
         self.tf_pub = self.create_publisher(PoseStamped, 'tf_pos', 1)
         
         # controller and waypoint
@@ -83,7 +83,7 @@ class MPCDemo(Node):
     def create_controller(self):
         controller_type = self.controller_type
         if controller_type == "mpc":
-            return MPControl()
+            return MPControl(self.control_frequency)
         elif controller_type == "hybrid":
             return HybridControl()
         elif controller_type == "gp":
@@ -180,6 +180,7 @@ class MPCDemo(Node):
             return points
         
         elif trajectory_type == "tracking": # TODO
+            self.get_logger().fatal("Target tracking not set up.")
             return [[0, 0, 0]]
         
         else:
@@ -219,23 +220,23 @@ class MPCDemo(Node):
         self.angular_vel[1] = imu_angular_vel.y
         self.angular_vel[2] = imu_angular_vel.z
 
-    def vicon_callback(self, data):
-        '''
-        callback function for getting vicon positions
-        '''
-        self.curr_pos[0] = data.pose.position.x
-        self.curr_pos[1] = data.pose.position.y
-        self.curr_pos[2] = data.pose.position.z
-        self.curr_quat[0] = data.pose.orientation.x
-        self.curr_quat[1] = data.pose.orientation.y
-        self.curr_quat[2] = data.pose.orientation.z
-        self.curr_quat[3] = data.pose.orientation.w
+    # def vicon_callback(self, data):
+    #     '''
+    #     callback function for getting vicon positions
+    #     '''
+    #     self.curr_pos[0] = data.pose.position.x
+    #     self.curr_pos[1] = data.pose.position.y
+    #     self.curr_pos[2] = data.pose.position.z
+    #     self.curr_quat[0] = data.pose.orientation.x
+    #     self.curr_quat[1] = data.pose.orientation.y
+    #     self.curr_quat[2] = data.pose.orientation.z
+    #     self.curr_quat[3] = data.pose.orientation.w
 
 
-    def target_callback(self, data):
-        self.target_pos[0] = data.pose.position.x
-        self.target_pos[1] = data.pose.position.y
-        self.target_pos[2] = data.pose.position.z
+    # def target_callback(self, data):
+    #     self.target_pos[0] = data.pose.position.x
+    #     self.target_pos[1] = data.pose.position.y
+    #     self.target_pos[2] = data.pose.position.z
 
 
     def takeoff(self):  # TODO
