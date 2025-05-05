@@ -121,3 +121,25 @@ zoxide
 access data package more elegantly!!!
 
 `export PYTHONPATH="/ros_ws/src/crazyflie_mpc/data:$PYTHONPATH"`
+no point specfying steps for linear trajectory
+waypoint_traj deal with repeat points
+takeoff, press key to land (geometric)
+
+ros launch service
+
+- Make `trajectories.yaml` specify per-crazyflie trajectories. The `trajectory_launch.py` script should look at both `crazyflies.yaml` and `trajectories.yaml` and assert a sane state before launching all nodes. The new trajectory format should be
+```
+cf18:
+  type: linear
+  params:
+    start: [x, y, z]
+    end: [x, y, z]
+```
+- Start a bunch of crazyflies (loop in trajectory_launch?).
+- Either automatically or through command line, broadcast on `state_pub`. This should change all `m_state`s to 2.
+- Either automatically or through command line, broadcast on `automaticService`. This should change all `m_state`s to 1. Automation would require polling that all crazyflies are ready.
+- Either automatically or through command line, broadcast on `landingService`. This should change all `m_state`s to 3. Automation would require polling that all crazyflies are ready.
+- Once a crazyflie is done landing, it should switch to idle.
+
+- Get rid of trajectories.yaml
+- Specify all trajectories in mpc_config.yaml

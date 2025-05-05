@@ -1,73 +1,60 @@
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
-from launch.substitutions import LaunchConfiguration
-from launch.conditions import IfCondition
+from launch.logging import get_logger
 from launch_ros.actions import Node
-
+import yaml
 
 def generate_launch_description():
-    # Get package share directory
-    pkg_share = get_package_share_directory('crazyflie_mpc')
-    
+    logger = get_logger('launch')
+
     # Launch Arguments
-    # TODO: infer default_value from config
-    frame_arg = DeclareLaunchArgument('frame', default_value='cf13', description='Frame name')
-    world_frame_arg = DeclareLaunchArgument('world_frame', default_value='world', description='World frame name')
-    use_sim_arg = DeclareLaunchArgument('use_sim', default_value='true', description='Use simulation instead of real hardware')
-    
-    # Get launch configurations
-    frame = LaunchConfiguration('frame')
-    world_frame = LaunchConfiguration('world_frame')
-    use_sim = LaunchConfiguration('use_sim')
-    
-    # Define config files
-    controller_config = os.path.join(pkg_share, 'config', 'mpc_config.yaml')
-    trajectory_config = os.path.join(pkg_share, 'config', 'trajectories.yaml')
+    crazyflies_yaml_path = os.path.join(
+        get_package_share_directory('crazyflie'),
+        'config',
+        'crazyflies.yaml')
+    mpc_yaml_path = os.path.join(
+        get_package_share_directory('crazyflie_mpc'),
+        'config',
+        'mpc.yaml')
 
-    # MPC demo node with trajectory following
-    mpc_demo_node = Node(
-        package='crazyflie_mpc',
-        executable='follow_waypoint.py',
-        name='mpc_demo',
-        namespace='crazyflie',
-        parameters=[
-            {'frame': frame},
-            {'world_frame': world_frame},
-            controller_config,
-            trajectory_config
-        ],
-        output='screen'
-    )
-
-    # Static transform publisher for world frame
-    static_tf_world_node = Node(
-        package='tf2_ros',
-        executable='static_transform_publisher',
-        name='world_broadcaster',
-        arguments=['0', '0', '0', '0', '0', '0', '1',
-                  world_frame, frame]
-    )
-
-    # If using simulation, add a node to publish initial pose
-    sim_pose_publisher = Node(
-        package='tf2_ros',
-        executable='static_transform_publisher',
-        name='sim_pose_publisher',
-        arguments=['0', '0', '0', '0', '0', '0', '1',
-                  world_frame, frame],
-        condition=IfCondition(use_sim)
-    )
-    
-    return LaunchDescription([
-        # Launch arguments
-        frame_arg,
-        world_frame_arg,
-        use_sim_arg,
+    with open(crazyflies_yaml_path, 'r') as f:
+        crazyflies = yaml.safe_load(f)
+    with open(mpc_yaml_path, 'r') as f:
+        mpc = yaml.safe_load(f)
         
-        # Nodes
-        mpc_demo_node,
-        static_tf_world_node,
-        sim_pose_publisher,
-    ])
+    world_frame = 'world_frame'
+    mpc_demo_nodes = []
+    static_tf_nodes = []
+
+    for key, value in crazyflies['robots'].items():
+        if value['enabled']:
+            if key not in mpc['robots']:
+                logger.error(f"Trajectory not specified for robot {key}")
+                raise RuntimeError(f"no trajectory for robot {key}")
+
+            # MPC demo node
+            mpc_demo_nodes.append(Node(
+                package='crazyflie_mpc',
+                executable='follow_waypoint.py',
+                name='mpc_demo',
+                namespace=key,
+                parameters=[
+                    {'world_frame': world_frame},
+                    {'frame': key},
+                    mpc['constants'],
+                    mpc['robots'][key]
+                ],
+                output='screen'
+            ))
+
+            # Static transform publisher
+            static_tf_nodes.append(Node(
+                package='tf2_ros',
+                executable='static_transform_publisher',
+                name='world_broadcaster',
+                arguments=['0', '0', '0', '0', '0', '0', '1',
+                        world_frame, key]
+            ))
+    
+    return LaunchDescription(mpc_demo_nodes + static_tf_nodes)

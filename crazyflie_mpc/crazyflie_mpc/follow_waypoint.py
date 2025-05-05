@@ -26,17 +26,17 @@ class MPCDemo(Node):
             'mpc_demo',
             allow_undeclared_parameters=True,
             automatically_declare_parameters_from_overrides=True
-        ) # initializing node
-        # self.m_serviceLand = self.create_service('land', , self.landingService)
-        # self.m_serviceTakeoff = self.create_service('takeoff', , self.takeoffService)
+        )
         
         self.world_frame = self.get_parameter('world_frame').get_parameter_value().string_value
-        quad_name = self.get_parameter('frame').get_parameter_value().string_value
-        self.frame = quad_name
-        self.trajectory_type = self.get_parameter('trajectory_type').get_parameter_value().string_value
-        self.controller_type = self.get_parameter('controller_type').get_parameter_value().string_value
+        self.frame = self.get_parameter('frame').get_parameter_value().string_value
+        quad_name = self.frame
+
+        self.controller_type = self.get_parameter('controller_type').get_parameter_value().string_value   
         self.control_frequency = self.get_parameter('control_frequency').value
-        
+
+        self.trajectory_type = self.get_parameter('trajectory_type').get_parameter_value().string_value
+
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
         
@@ -49,8 +49,8 @@ class MPCDemo(Node):
         self.est_vel_pub = self.create_publisher(TwistStamped, 'est_vel', 1)  # publishing estimated velocity
         self.u_pub = self.create_publisher(TwistStamped, 'u_euler', 1)  # publishing stamped 
         self.cmd_stamped_pub = self.create_publisher(TwistStamped, 'cmd_vel_stamped', 1)  # publishing time stamped cmd_vel
-        self.imu_sub = self.create_subscription(Imu, f'/{quad_name}/imu', self.imu_callback, 10)  # subscribing imu
-        self.cmd_pub = self.create_publisher(Twist, f'/{quad_name}/cmd_vel_legacy', 1)  # publishing to cmd_vel to control crazyflie
+        self.imu_sub = self.create_subscription(Imu, 'imu', self.imu_callback, 10)  # subscribing imu
+        self.cmd_pub = self.create_publisher(Twist, 'cmd_vel_legacy', 1)  # publishing to cmd_vel to control crazyflie
         self.goal_pub = self.create_publisher(TwistStamped, 'goal', 1)  # publishing waypoints along the trajectory        
         # self.target_sub = self.create_subscription(PoseStamped, "/vicon/crazy_target/pose", self.target_callback, 10) # TODO: set correctly
         # self.vicon_sub = self.create_subscription(PoseStamped, f'/vicon/{quad_name}/{quad_name}/pose', self.vicon_callback, 10) 
@@ -77,8 +77,9 @@ class MPCDemo(Node):
         self.prev_pos = self.initial_state['x']
         self.prev_vel = np.zeros([3,])
         self.get_logger().info("=============== MPC Demo Initialized ===============")
-        self.get_logger().info(f"Trajectory type: {self.trajectory_type}")
-        self.get_logger().info(f"Controller type: {self.controller_type}")
+        self.get_logger().info(f"Trajectory: {self.trajectory_type}")
+        self.get_logger().info(f"Controller: {self.controller_type}")
+        self.get_logger().info(f"Quadrotor: {quad_name}")
     
     def create_controller(self):
         controller_type = self.controller_type
@@ -98,10 +99,10 @@ class MPCDemo(Node):
         trajectory_type = self.trajectory_type
 
         if trajectory_type == "circle":
-            radius = self.get_parameter("trajectories.circle.radius").value
-            height = self.get_parameter("trajectories.circle.height").value
-            center = self.get_parameter("trajectories.circle.center").value
-            duration = self.get_parameter("trajectories.circle.duration").value
+            radius = self.get_parameter("trajectory_radius").value
+            height = self.get_parameter("trajectory_height").value
+            center = self.get_parameter("trajectory_center").value
+            duration = self.get_parameter("trajectory_duration").value
                 
             t_plot = np.linspace(0, duration, num=500)
             x_traj = radius * np.cos(t_plot) + center[0]
@@ -116,7 +117,7 @@ class MPCDemo(Node):
             point_index = 0
             
             while True:
-                param_name = f"trajectories.square.point_{point_index}"
+                param_name = f"trajectory_point_{point_index}"
                 try:
                     point = self.get_parameter(param_name).value
                     points.append(point)
@@ -127,8 +128,8 @@ class MPCDemo(Node):
             return np.array(points)
         
         elif trajectory_type == "linear":
-            start = np.array(self.get_parameter("trajectories.linear.start").value)
-            end = np.array(self.get_parameter("trajectories.linear.end").value)
+            start = np.array(self.get_parameter("trajectory_start").value)
+            end = np.array(self.get_parameter("trajectory_end").value)
 
             takeoff = np.linspace([0, 0, 0], start, 20)
             landing = np.linspace(start, [0, 0, 0.2], 20)
@@ -139,8 +140,8 @@ class MPCDemo(Node):
             return points
             
         elif trajectory_type == "figure8":
-            center = self.get_parameter("trajectories.figure8.center").value
-            scale = self.get_parameter("trajectories.figure8.scale").value
+            center = self.get_parameter("trajectory_center").value
+            scale = self.get_parameter("trajectory_scale").value
             
             takeoff = np.linspace([0, 0, 0], center, 20)
             landing = np.linspace(center, [0, 0, 0.2], 20)
@@ -155,13 +156,13 @@ class MPCDemo(Node):
             return points
             
         elif trajectory_type == "spiral":
-            center = self.get_parameter("trajectories.spiral.center").value
-            radius_start = self.get_parameter("trajectories.spiral.radius_start").value
-            radius_end = self.get_parameter("trajectories.spiral.radius_end").value
-            height_start = self.get_parameter("trajectories.spiral.height_start").value
-            height_end = self.get_parameter("trajectories.spiral.height_end").value
-            revolutions = self.get_parameter("trajectories.spiral.revolutions").value
-            duration = self.get_parameter("trajectories.spiral.duration").value
+            center = self.get_parameter("trajectory_center").value
+            radius_start = self.get_parameter("trajectory_radius_start").value
+            radius_end = self.get_parameter("trajectory_radius_end").value
+            height_start = self.get_parameter("trajectory_height_start").value
+            height_end = self.get_parameter("trajectory_height_end").value
+            revolutions = self.get_parameter("trajectory_revolutions").value
+            duration = self.get_parameter("trajectory_duration").value
                 
             t = np.linspace(0, 2*np.pi*revolutions, 500)
             radius = np.linspace(radius_start, radius_end, len(t))
@@ -173,7 +174,7 @@ class MPCDemo(Node):
             return points
             
         elif trajectory_type == "hover":
-            position = self.get_parameter("trajectories.hover.position").value
+            position = self.get_parameter("trajectory_position").value
                 
             # Generate simple hover path (just one point)
             points = np.array([position])
@@ -184,32 +185,20 @@ class MPCDemo(Node):
             return [[0, 0, 0]]
         
         else:
-            # Default to circle if trajectory not recognized
-            self.get_logger().warning(f"Trajectory type '{trajectory_type}' not recognized. Using circle.")
-            radius = self.get_parameter("trajectories.circle.radius").value
-            height = self.get_parameter("trajectories.circle.height").value
-            center = self.get_parameter("trajectories.circle.center").value
-            duration = self.get_parameter("trajectories.circle.duration").value
-                
-            t_plot = np.linspace(0, duration, num=500)
-            x_traj = radius * np.cos(t_plot) + center[0]
-            y_traj = radius * np.sin(t_plot) + center[1]
-            z_traj = np.zeros((len(t_plot),)) + height
-            points = np.stack((x_traj, y_traj, z_traj), axis=1)
-            points[-1, 2] = 0.2  # End with lower height
-            return points
+            self.get_logger().fatal(f"Trajectory type '{trajectory_type}' not recognized.")
+            return [[0, 0, 0]]
 
     def timer_callback(self):
         # Check and update state machine
         if self.m_state == 0:
             self.idle()
-        elif self.m_state == 3:
-            self.land()
         elif self.m_state == 1:
             self.automatic(self.trajectory_type == 'tracking')
         elif self.m_state == 2:
             self.takeoff()
-
+        elif self.m_state == 3:
+            self.land()
+        
     def imu_callback(self, data):
         '''
         callback function for getting current angular velocity
