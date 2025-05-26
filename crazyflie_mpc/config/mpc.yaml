@@ -1,12 +1,12 @@
-robots:
+trajectories:
   cf13:
-    trajectory_type: "linear"
-    trajectory_start: [0.0, 0.0, 0.5]
-    trajectory_end: [-1.0, 0.0, 0.5]
+    type: "linear"
+    start: [0.0, 0.0, 0.5]
+    end: [-1.0, 0.0, 0.5]
   cf18:
-    trajectory_type: "linear"
-    trajectory_start: [0.0, 1.0, 0.5]
-    trajectory_end: [-1.0, 1.0, 0.5]
+    type: "linear"
+    start: [0.0, 1.0, 0.5]
+    end: [-1.0, 1.0, 0.5]
 
 constants:
   controller_type: "mpc" # Options: geometric, mpc, hybrid, gp

@@ -29,7 +29,7 @@ def generate_launch_description():
 
     for key, value in crazyflies['robots'].items():
         if value['enabled']:
-            if key not in mpc['robots']:
+            if key not in mpc['trajectories']:
                 logger.error(f"Trajectory not specified for robot {key}")
                 raise RuntimeError(f"no trajectory for robot {key}")
 
@@ -43,7 +43,7 @@ def generate_launch_description():
                     {'world_frame': world_frame},
                     {'frame': key},
                     mpc['constants'],
-                    mpc['robots'][key]
+                    mpc['trajectories'][key]
                 ],
                 output='screen'
             ))

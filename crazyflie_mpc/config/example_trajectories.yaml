@@ -1,41 +1,41 @@
 # Example trajectories
 circle:
-  trajectory_type: "circle"
-  trajectory_radius: 0.5
-  trajectory_height: 0.55
-  trajectory_center: [0.2172, 4.5455, 0.55]
-  trajectory_duration: 12.0
+  type: "circle"
+  radius: 0.5
+  height: 0.55
+  center: [0.2172, 4.5455, 0.55]
+  duration: 12.0
 
 square:
-  trajectory_type: "square"
-  trajectory_point_0: [-1.409, 2.826, 0.55]
-  trajectory_point_1: [1.609, 2.826, 0.55]
-  trajectory_point_2: [1.609, 5.826, 0.55]
-  trajectory_point_3: [-1.409, 5.826, 0.55]
-  trajectory_point_4: [-1.409, 2.826, 0.55]
-  trajectory_point_5: [-1.409, 2.826, 0.3]
-  trajectory_point_6: [-1.409, 2.826, 0.0]
+  type: "square"
+  point_0: [-1.409, 2.826, 0.55]
+  point_1: [1.609, 2.826, 0.55]
+  point_2: [1.609, 5.826, 0.55]
+  point_3: [-1.409, 5.826, 0.55]
+  point_4: [-1.409, 2.826, 0.55]
+  point_5: [-1.409, 2.826, 0.3]
+  point_6: [-1.409, 2.826, 0.0]
 
 linear:
-  trajectory_type: "linear"
-  trajectory_start: [0.0, 0.0, 0.5]
-  trajectory_end: [-1.0, 0.0, 0.5]
+  type: "linear"
+  start: [0.0, 0.0, 0.5]
+  end: [-1.0, 0.0, 0.5]
 
 figure8:
-  trajectory_type: "figure8"
-  trajectory_center: [0.0, 0.0, 0.5]
-  trajectory_scale: [0.8, 0.4, 0.0]
+  type: "figure8"
+  center: [0.0, 0.0, 0.5]
+  scale: [0.8, 0.4, 0.0]
 
 spiral:
-  trajectory_type: "spiral"
-  trajectory_center: [0.0, 0.0, 0.5]
-  trajectory_radius_start: 0.2
-  trajectory_radius_end: 0.8
-  trajectory_height_start: 0.5
-  trajectory_height_end: 1.5
-  trajectory_revolutions: 3
-  trajectory_duration: 15.0
+  type: "spiral"
+  center: [0.0, 0.0, 0.5]
+  radius_start: 0.2
+  radius_end: 0.8
+  height_start: 0.5
+  height_end: 1.5
+  revolutions: 3
+  duration: 15.0
 
 hover:
-  trajectory_type: "hover"
-  trajectory_position: [0.0, 0.0, 0.5]
+  type: "hover"
+  position: [0.0, 0.0, 0.5]

@@ -35,7 +35,7 @@ class MPCDemo(Node):
         self.controller_type = self.get_parameter('controller_type').get_parameter_value().string_value   
         self.control_frequency = self.get_parameter('control_frequency').value
 
-        self.trajectory_type = self.get_parameter('trajectory_type').get_parameter_value().string_value
+        self.trajectory_type = self.get_parameter('type').get_parameter_value().string_value
 
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
@@ -99,10 +99,10 @@ class MPCDemo(Node):
         trajectory_type = self.trajectory_type
 
         if trajectory_type == "circle":
-            radius = self.get_parameter("trajectory_radius").value
-            height = self.get_parameter("trajectory_height").value
-            center = self.get_parameter("trajectory_center").value
-            duration = self.get_parameter("trajectory_duration").value
+            radius = self.get_parameter("radius").value
+            height = self.get_parameter("height").value
+            center = self.get_parameter("center").value
+            duration = self.get_parameter("duration").value
                 
             t_plot = np.linspace(0, duration, num=500)
             x_traj = radius * np.cos(t_plot) + center[0]
@@ -117,7 +117,7 @@ class MPCDemo(Node):
             point_index = 0
             
             while True:
-                param_name = f"trajectory_point_{point_index}"
+                param_name = f"point_{point_index}"
                 try:
                     point = self.get_parameter(param_name).value
                     points.append(point)
@@ -128,8 +128,8 @@ class MPCDemo(Node):
             return np.array(points)
         
         elif trajectory_type == "linear":
-            start = np.array(self.get_parameter("trajectory_start").value)
-            end = np.array(self.get_parameter("trajectory_end").value)
+            start = np.array(self.get_parameter("start").value)
+            end = np.array(self.get_parameter("end").value)
 
             takeoff = np.linspace([0, 0, 0], start, 20)
             landing = np.linspace(start, [0, 0, 0.2], 20)
@@ -140,8 +140,8 @@ class MPCDemo(Node):
             return points
             
         elif trajectory_type == "figure8":
-            center = self.get_parameter("trajectory_center").value
-            scale = self.get_parameter("trajectory_scale").value
+            center = self.get_parameter("center").value
+            scale = self.get_parameter("scale").value
             
             takeoff = np.linspace([0, 0, 0], center, 20)
             landing = np.linspace(center, [0, 0, 0.2], 20)
@@ -156,13 +156,13 @@ class MPCDemo(Node):
             return points
             
         elif trajectory_type == "spiral":
-            center = self.get_parameter("trajectory_center").value
-            radius_start = self.get_parameter("trajectory_radius_start").value
-            radius_end = self.get_parameter("trajectory_radius_end").value
-            height_start = self.get_parameter("trajectory_height_start").value
-            height_end = self.get_parameter("trajectory_height_end").value
-            revolutions = self.get_parameter("trajectory_revolutions").value
-            duration = self.get_parameter("trajectory_duration").value
+            center = self.get_parameter("center").value
+            radius_start = self.get_parameter("radius_start").value
+            radius_end = self.get_parameter("radius_end").value
+            height_start = self.get_parameter("height_start").value
+            height_end = self.get_parameter("height_end").value
+            revolutions = self.get_parameter("revolutions").value
+            duration = self.get_parameter("duration").value
                 
             t = np.linspace(0, 2*np.pi*revolutions, 500)
             radius = np.linspace(radius_start, radius_end, len(t))
@@ -174,7 +174,7 @@ class MPCDemo(Node):
             return points
             
         elif trajectory_type == "hover":
-            position = self.get_parameter("trajectory_position").value
+            position = self.get_parameter("position").value
                 
             # Generate simple hover path (just one point)
             points = np.array([position])

@@ -140,6 +140,3 @@ cf18:
 - Either automatically or through command line, broadcast on `automaticService`. This should change all `m_state`s to 1. Automation would require polling that all crazyflies are ready.
 - Either automatically or through command line, broadcast on `landingService`. This should change all `m_state`s to 3. Automation would require polling that all crazyflies are ready.
 - Once a crazyflie is done landing, it should switch to idle.
-
-- Get rid of trajectories.yaml
-- Specify all trajectories in mpc_config.yaml
