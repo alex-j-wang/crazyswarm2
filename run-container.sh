@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+set -e
+
+DOCKER_REPOSITORY="crazyswarm2"
+DOCKER_TAG="latest"
+DOCKER_IMAGE="${DOCKER_REPOSITORY}:${DOCKER_TAG}"
+CURRENT_DIR="$(pwd)"
+ROS_WS_PATH="/ros_ws/src"
+
+docker run -it --privileged -d \
+  --volume "${CURRENT_DIR}:${ROS_WS_PATH}:rw" \
+  --volume /dev/bus/usb:/dev/bus/usb \
+  --name "${DOCKER_REPOSITORY}" \
+  --network host \
+  "${DOCKER_IMAGE}" bash
