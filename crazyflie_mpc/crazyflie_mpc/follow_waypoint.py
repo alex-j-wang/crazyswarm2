@@ -57,7 +57,7 @@ class MPCDemo(Node):
         self.tf_pub = self.create_publisher(PoseStamped, 'tf_pos', 1)
         
         # controller and waypoint
-        self.m_state = 0 # Idle: 0, Automatic: 1, TakingOff: 2, Landing: 3
+        self.m_state = 0 # Idle: 0, TakingOff: 1, Automatic: 2, Landing: 3
         self.m_thrust = 0
         self.m_startZ = 0
         
@@ -193,9 +193,9 @@ class MPCDemo(Node):
         if self.m_state == 0:
             self.idle()
         elif self.m_state == 1:
-            self.automatic(self.trajectory_type == 'tracking')
-        elif self.m_state == 2:
             self.takeoff()
+        elif self.m_state == 2:
+            self.automatic(self.trajectory_type == 'tracking')
         elif self.m_state == 3:
             self.land()
         
@@ -235,7 +235,7 @@ class MPCDemo(Node):
                 self.frame,
                 rclpy.time.Time())
             if transform.transform.translation.z > 0 + 0.1: # when the quad has lifted off
-                self.m_state = 1 # switch to automatic
+                self.m_state = 2 # switch to automatic
         except:
             pass
 
@@ -250,7 +250,7 @@ class MPCDemo(Node):
     
     def takeoffService(self, req, res):  # TODO
         self.get_logger().info("Takeoff requested!")
-        m_state = 2  # set state to taking off
+        m_state = 1  # set state to taking off
         try:
             transform = self.tf_buffer.lookup_transform(
                 self.world_frame,
@@ -367,7 +367,7 @@ class MPCDemo(Node):
             msg = Twist()
             self.cmd_pub.publish(msg)
         else:
-            self.m_state = 1
+            self.m_state = 2
             self.prev_time = self.get_clock().now().nanoseconds / 1e9
             self.t0 = self.get_clock().now().nanoseconds / 1e9
 
@@ -392,7 +392,7 @@ class MPCDemo(Node):
                     rclpy.time.Time())
                 z_ = transform.transform.translation.z
             
-            self.m_state = 1
+            self.m_state = 2
             self.prev_time = self.get_clock().now().nanoseconds / 1e9
             self.t0 = self.get_clock().now().nanoseconds / 1e9
         except:

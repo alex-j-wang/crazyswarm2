@@ -62,3 +62,10 @@ how often do files really need to be rebuilt?
 ./build-container
 ./run-container
 ./join-container
+
+look through docs files
+builtin_interfaces/Duration duration
+ros2 run crazyflie reboot --uri radio://0/80/2M/E7E7E7E706
+ros2 run crazyflie_examples nice_hover
+
+self.create_service(Takeoff, "all/takeoff", self._takeoff_callback)
