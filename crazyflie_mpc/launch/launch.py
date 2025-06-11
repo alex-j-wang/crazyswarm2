@@ -52,9 +52,25 @@ def generate_launch_description():
             static_tf_nodes.append(Node(
                 package='tf2_ros',
                 executable='static_transform_publisher',
-                name='world_broadcaster',
-                arguments=['0', '0', '0', '0', '0', '0', '1',
-                        world_frame, key]
+                name='world_broadcaster_' + key,  # Make the node name unique
+                arguments=[
+                    '--x', '0', '--y', '0', '--z', '0',
+                    '--qx', '0', '--qy', '0', '--qz', '0', '--qw', '1',
+                    '--frame-id', world_frame,
+                    '--child-frame-id', key
+                ]
             ))
+
+    # Command node
+    mpc_demo_nodes.append(Node(
+        package='crazyflie_mpc',
+        executable='command.py',
+        name='command',
+        namespace='command',
+        parameters=[
+            {'cfnames': [key for key in crazyflies['robots'].keys() if crazyflies['robots'][key]['enabled']]},
+        ],
+        output='screen'
+    ))
     
     return LaunchDescription(mpc_demo_nodes + static_tf_nodes)

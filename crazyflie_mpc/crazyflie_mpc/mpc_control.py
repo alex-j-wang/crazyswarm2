@@ -74,7 +74,7 @@ class MPControl(object):
         yaw_des = flat_output['yaw']
 
         # MPC
-        if self.downsample_cnt % (self.control_frequency // 4) == 0: # This assumes update() to be called at 200Hz
+        if self.downsample_cnt % (self.control_frequency // 4) == 0:
             opti = Opti()
             x = opti.variable(self.num_states, self.N_ctrl + 1)  # States
             u = opti.variable(self.num_inputs, self.N_ctrl)  # Control input

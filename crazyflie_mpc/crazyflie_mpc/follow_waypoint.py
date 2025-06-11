@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 import numpy as np
 import rclpy
 import rclpy.duration
@@ -10,7 +11,7 @@ from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import Vector3
 from sensor_msgs.msg import Imu
 from tf2_ros import TransformListener, Buffer
-from std_msgs.msg import String
+from std_msgs.msg import String, Int32
 
 from scipy.spatial.transform import Rotation
 import waypoint_traj as wt
@@ -43,9 +44,9 @@ class MPCDemo(Node):
         # subscribers and publishers
         self.timer = self.create_timer(1.0 / self.control_frequency, self.timer_callback)
         self.angular_vel = np.zeros([3,])  # angular velocity updated by imu subscriber
-        self.curr_pos = np.zeros([3,])
-        self.target_pos = np.zeros([3,])
-        self.curr_quat = np.zeros([4,])
+        # self.curr_pos = np.zeros([3,])
+        # self.target_pos = np.zeros([3,])
+        # self.curr_quat = np.zeros([4,])
         self.est_vel_pub = self.create_publisher(TwistStamped, 'est_vel', 1)  # publishing estimated velocity
         self.u_pub = self.create_publisher(TwistStamped, 'u_euler', 1)  # publishing stamped 
         self.cmd_stamped_pub = self.create_publisher(TwistStamped, 'cmd_vel_stamped', 1)  # publishing time stamped cmd_vel
@@ -55,42 +56,38 @@ class MPCDemo(Node):
         # self.target_sub = self.create_subscription(PoseStamped, "/vicon/crazy_target/pose", self.target_callback, 10) # TODO: set correctly
         # self.vicon_sub = self.create_subscription(PoseStamped, f'/vicon/{quad_name}/{quad_name}/pose', self.vicon_callback, 10) 
         self.tf_pub = self.create_publisher(PoseStamped, 'tf_pos', 1)
+
+        # command topics
+        self.state_sub = self.create_subscription(Int32, '/command/cmd_state', self.cmd_state_callback, 1)  # subscribing to state changes
+        self.ready_pub = self.create_publisher(String, '/command/cf_ready', 1)  # publishing state completion
         
         # controller and waypoint
-        self.m_state = 0 # Idle: 0, TakingOff: 1, Automatic: 2, Landing: 3
-        self.m_thrust = 0
-        self.m_startZ = 0
+        self.m_state = 0 # Idle: 0, TakingOff: 1, Automatic: 2, Landing: 3, Stopping: 4
+        self.ready_sent = False  # Flag to check if ready message has been sent
+        # self.m_thrust = 0
+        # self.m_startZ = 0
         
-        # Get trajectory points based on trajectory type
-        points = self.get_trajectory_points()
-        self.traj = self.generate_traj(points)  # trajectory
+        self.trajectory_points = self.get_trajectory_points()
+        self.traj = None
+        self.controller = None
         
-        ############# CONTROLLER ########### 
-        self.controller = self.create_controller()
-        
-        self.initial_state = {'x': np.array([0, 0, 0]), # positions
-                              'v': np.array([0, 0, 0]), # velocities
-                              'q': np.array([0, 0, 0, 1]), # quaternion
-                              'w': np.zeros(3,)} # angular vel
         self.t0 = self.get_clock().now().nanoseconds / 1e9
         self.prev_time = self.get_clock().now().nanoseconds / 1e9
-        self.prev_pos = self.initial_state['x']
-        self.prev_vel = np.zeros([3,])
-        self.get_logger().info("=============== MPC Demo Initialized ===============")
-        self.get_logger().info(f"Trajectory: {self.trajectory_type}")
-        self.get_logger().info(f"Controller: {self.controller_type}")
-        self.get_logger().info(f"Quadrotor: {quad_name}")
+        self.prev_pos = None
+        self.prev_vel = np.zeros(3)
+        
+        self.ready_pub.publish(String(data=quad_name))  # publish ready message
     
     def create_controller(self):
-        controller_type = self.controller_type
-        if controller_type == "mpc":
-            return MPControl(self.control_frequency)
-        elif controller_type == "hybrid":
-            return HybridControl()
-        elif controller_type == "gp":
-            return GPControl()
-        else:
-            return GeometriControl()
+        match self.controller_type:
+            case "mpc":
+                return MPControl(self.control_frequency)
+            case "hybrid":
+                return HybridControl()
+            case "gp":
+                return GPControl()
+            case _:
+                return GeometriControl()
     
     def get_trajectory_points(self):
         """
@@ -107,12 +104,11 @@ class MPCDemo(Node):
             t_plot = np.linspace(0, duration, num=500)
             x_traj = radius * np.cos(t_plot) + center[0]
             y_traj = radius * np.sin(t_plot) + center[1]
-            z_traj = np.zeros((len(t_plot),)) + height
+            z_traj = np.repeat(height, len(t_plot))
             points = np.stack((x_traj, y_traj, z_traj), axis=1)
-            points[-1, 2] = 0.2  # End with lower height
             return points
             
-        elif trajectory_type == "square":
+        elif trajectory_type == "waypoint":
             points = []
             point_index = 0
             
@@ -131,28 +127,18 @@ class MPCDemo(Node):
             start = np.array(self.get_parameter("start").value)
             end = np.array(self.get_parameter("end").value)
 
-            takeoff = np.linspace([0, 0, 0], start, 20)
-            landing = np.linspace(start, [0, 0, 0.2], 20)
-
-            # Concatenate forward + return
-            points = np.vstack([takeoff, [end], landing])
-
+            points = np.vstack((start, end))
             return points
             
         elif trajectory_type == "figure8":
             center = self.get_parameter("center").value
             scale = self.get_parameter("scale").value
             
-            takeoff = np.linspace([0, 0, 0], center, 20)
-            landing = np.linspace(center, [0, 0, 0.2], 20)
-            
             t = np.linspace(0, 2*np.pi, 500)
             x = center[0] + scale[0] * np.sin(t)
             y = center[1] + scale[1] * np.sin(t) * np.cos(t)
             z = np.ones_like(t) * center[2]
-            figure8 = np.vstack([x, y, z]).T
-
-            points = np.vstack([takeoff[:-1], figure8, landing[1:]])
+            points = np.stack([x, y, z], axis=1)
             return points
             
         elif trajectory_type == "spiral":
@@ -170,35 +156,22 @@ class MPCDemo(Node):
             x = center[0] + radius * np.cos(t)
             y = center[1] + radius * np.sin(t)
             z = height
-            points = np.vstack([x, y, z]).T
+            points = np.stack([x, y, z], axis=1)
             return points
             
         elif trajectory_type == "hover":
             position = self.get_parameter("position").value
-                
-            # Generate simple hover path (just one point)
             points = np.array([position])
             return points
         
         elif trajectory_type == "tracking": # TODO
-            self.get_logger().fatal("Target tracking not set up.")
+            self.get_logger().fatal("Target tracking unavailable")
             return [[0, 0, 0]]
         
         else:
-            self.get_logger().fatal(f"Trajectory type '{trajectory_type}' not recognized.")
+            self.get_logger().fatal(f"Trajectory type '{trajectory_type}' not recognized")
             return [[0, 0, 0]]
 
-    def timer_callback(self):
-        # Check and update state machine
-        if self.m_state == 0:
-            self.idle()
-        elif self.m_state == 1:
-            self.takeoff()
-        elif self.m_state == 2:
-            self.automatic(self.trajectory_type == 'tracking')
-        elif self.m_state == 3:
-            self.land()
-        
     def imu_callback(self, data):
         '''
         callback function for getting current angular velocity
@@ -227,69 +200,55 @@ class MPCDemo(Node):
     #     self.target_pos[1] = data.pose.position.y
     #     self.target_pos[2] = data.pose.position.z
 
-
-    def takeoff(self):  # TODO
-        try:
-            transform = self.tf_buffer.lookup_transform(
-                self.world_frame,
-                self.frame,
-                rclpy.time.Time())
-            if transform.transform.translation.z > 0 + 0.1: # when the quad has lifted off
-                self.m_state = 2 # switch to automatic
-        except:
-            pass
-
-    def landingService(self, req, res):  # TODO
-        pass
+    def cmd_state_callback(self, msg: Int32):
+        '''
+        callback function for state changes
+        '''
+        if msg.data != self.m_state:
+            match msg.data:
+                case 1:
+                    self.get_logger().info("Takeoff requested!")
+                    traj_start = self.trajectory_points[0]
+                    self.traj = self.generate_traj(np.vstack((self.prev_pos, traj_start)))
+                    self.controller = GeometriControl()
+                case 2:
+                    self.get_logger().info("Trajectory requested!")
+                    self.traj = self.generate_traj(self.trajectory_points)
+                    self.controller = self.create_controller()
+                case 3:
+                    self.get_logger().info("Landing requested!")
+                    traj_end = self.trajectory_points[-1]
+                    self.traj = self.generate_traj(np.vstack((traj_end, np.array([traj_end[0], traj_end[1], 0.02]))))
+                    self.controller = GeometriControl()
+                case 4:
+                    self.get_logger().info("Shutdown requested!")
+                    msg = Twist()
+                    self.cmd_pub.publish(msg)
+                    rclpy.shutdown()
+                case _:
+                    self.get_logger().warn(f"Invalid state request {msg.data}")
+            self.t0 = self.get_clock().now().nanoseconds / 1e9
+            self.m_state = msg.data
+            self.ready_sent = False
 
     def generate_traj(self, points):
         '''
         returns trajectory object generated from points
         '''
-        return wt.WaypointTraj(points) 
+        return wt.WaypointTraj(points)
     
-    def takeoffService(self, req, res):  # TODO
-        self.get_logger().info("Takeoff requested!")
-        m_state = 1  # set state to taking off
-        try:
-            transform = self.tf_buffer.lookup_transform(
-                self.world_frame,
-                self.frame,
-                rclpy.time.Time())
-            self.m_startZ = transform.transform.translation.z  # set z coor for start position
-        except:
-            pass
-
-    
-    def land(self):  # TODO
-        self.get_logger().info("landing")
-        try:
-            transform = self.tf_buffer.lookup_transform(
-                self.world_frame,
-                self.frame,
-                rclpy.time.Time())
-            pos = transform.transform.translation
-            if pos.z <= self.initial_state['x'][2] + 0.05:
-                self.m_state = 0
-                msg = Twist()
-                self.cmd_pub.publish(msg)
-        except:
-            pass
-    
-    def automatic(self, target_tracking):  # running MPC
+    def timer_callback(self):  # running MPC
         curr_time = self.get_clock().now().nanoseconds / 1e9
         dt = curr_time - self.prev_time
-        if target_tracking:
-            # For target tracking, create a trajectory between current position and target
-            interp_time = [1,4]
-            points = interp1d(interp_time, np.vstack([self.curr_pos, self.target_pos]), axis=0)([1,2,3,4])
-            # Add altitude offset for safety
-            points[:, 2] += 0.35
-            # Generate new trajectory to target
-            self.traj = self.generate_traj(points)
-            self.get_logger().debug(f"Target tracking: moving to {self.target_pos}")
-
-        flat = self.sanitize_trajectory_dic(self.traj.update(curr_time-self.t0))
+        # if self.trajectory_type == 'tracking':
+        #     # For target tracking, create a trajectory between current position and target
+        #     interp_time = [1,4]
+        #     points = interp1d(interp_time, np.vstack([self.curr_pos, self.target_pos]), axis=0)([1,2,3,4])
+        #     # Add altitude offset for safety
+        #     points[:, 2] += 0.35
+        #     # Generate new trajectory to target
+        #     self.traj = self.generate_traj(points)
+        #     self.get_logger().debug(f"Target tracking: moving to {self.target_pos}")
 
         # Get position from tf
         if self.tf_buffer.can_transform(self.world_frame, self.frame, rclpy.time.Time(), rclpy.duration.Duration(seconds=2.0)):
@@ -298,27 +257,35 @@ class MPCDemo(Node):
                 self.frame,
                 rclpy.time.Time())
         else:
-            self.get_logger().warn(f"Transform not available within timeout.")
+            self.get_logger().warn(f"Transform not available within timeout")
             return
 
-        pos = [transform.transform.translation.x, transform.transform.translation.y, transform.transform.translation.z]
-        quat = [transform.transform.rotation.x, transform.transform.rotation.y, transform.transform.rotation.z, transform.transform.rotation.w]
+        pos = np.array([transform.transform.translation.x, transform.transform.translation.y, transform.transform.translation.z])
+        quat = np.array([transform.transform.rotation.x, transform.transform.rotation.y, transform.transform.rotation.z, transform.transform.rotation.w])
 
-        v = (np.array(pos) - np.array(self.prev_pos))/dt # velocity estimate
+        if self.prev_pos is None:
+            self.prev_pos = pos
+            
+        v = (pos - self.prev_pos) / dt # velocity estimate
         v_est_sum = np.sum(np.abs(v))
         if v_est_sum < 1e-6:
             v = self.prev_vel
-        
         v = np.clip(v, -0.7, 0.7)
+
+        if self.m_state == 0:
+            msg = Twist()
+            self.cmd_pub.publish(msg)
+            return
         
         curr_state = {
-            'x': np.array(pos),
+            'x': pos,
             'v': v,
-            'q': np.array(quat),
+            'q': quat,
             'w': self.angular_vel
         }
     
         # Update controller
+        flat = self.sanitize_trajectory_dic(self.traj.update(curr_time - self.t0))
         u = self.controller.update(curr_time, curr_state, flat)
         
         # Extract control values
@@ -346,6 +313,10 @@ class MPCDemo(Node):
             self.prev_time = curr_time
             self.prev_pos = pos
 
+        if flat['done'] and not self.ready_sent:
+            self.ready_sent = True
+            self.ready_pub.publish(String(data=self.frame))
+
     def map_u1(self, u1):  # mapping control thrust output to cmd_vel thrust
         # u1 ranges from -0.2 to 0.2
         trim_cmd = 53000 # was 43000
@@ -358,47 +329,6 @@ class MPCDemo(Node):
             mapped_u1 = float(60000)
         return mapped_u1
 
-    def idle(self):
-        '''
-        publish zero commands for 3 seconds before switching to automatic
-        '''
-        current_time = self.get_clock().now().nanoseconds / 1e9
-        if current_time - self.t0 <= 3:
-            msg = Twist()
-            self.cmd_pub.publish(msg)
-        else:
-            self.m_state = 2
-            self.prev_time = self.get_clock().now().nanoseconds / 1e9
-            self.t0 = self.get_clock().now().nanoseconds / 1e9
-
-    def takeoff0(self):  # TODO
-        msg = Twist()
-
-        try:
-            transform = self.tf_buffer.lookup_transform(
-                self.world_frame,
-                self.frame,
-                rclpy.time.Time())
-                
-            z_ = transform.transform.translation.z
-            while z_ <= 0.2:
-                if self.m_thrust > 50000:
-                    break
-                self.m_thrust += 10000 * 0.002
-                self.cmd_pub.publish(msg)
-                transform = self.tf_buffer.lookup_transform(
-                    self.world_frame,
-                    self.frame,
-                    rclpy.time.Time())
-                z_ = transform.transform.translation.z
-            
-            self.m_state = 2
-            self.prev_time = self.get_clock().now().nanoseconds / 1e9
-            self.t0 = self.get_clock().now().nanoseconds / 1e9
-        except:
-            pass
-
- 
     def sanitize_trajectory_dic(self, trajectory_dic):
         """
         Return a sanitized version of the trajectory dictionary where all of the elements are np arrays
@@ -479,7 +409,6 @@ def main(args=None):
     mpc_demo = MPCDemo()
     rclpy.spin(mpc_demo)
     mpc_demo.destroy_node()
-    rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
