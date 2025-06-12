@@ -2,14 +2,13 @@ https://docs.ros.org/en/humble/index.html
 https://en.cppreference.com/w/
 
 TODO:
-- Update README
+- Fix casadi warnings... downgrade package?
 - Multi-step trajectories
 - Give each trajectory step an optional duration field; speed defaults to the maximum velocity parameter
 - Collision detection and avoidance for trajectories?
 - `waypoint_traj` deal with repeat points (may be fixed by adding durations)
 
 FUTURE PLANS:
-- Fix casadi warnings... downgrade package?
 - Use common config file(s) / take config params from `crazyflies.yaml`
 - Understand all magic numbers and add to config (including model filenames)
 - Check Docker build log, see if anything in `requirements.txt` is unnecessary
@@ -18,42 +17,25 @@ FUTURE PLANS:
 - Add server to launch file(s)?
 - Access MPC data package more elegantly?
 - Make a template MPC Python program, API for inputs and outputs
+- Set up SIM backend (`cmd_vel_legacy` not yet implemented)
 - ~~Transition to crazyswarm2 API~~ (using `cmd_vel_legacy` switches to low-level control)
 - Very long term: ideally we get drones with cameras that can see each other, bypassing the need for external motion tracking
-
-LAUNCH:
-- `ros2 launch crazyflie launch.py`
-- `ros2 launch crazyflie_mpc launch.py`
 
 USEFUL COMMANDS:
 - `ros2 topic list`
 - `ros2 topic echo`
 - `ros2 bag record`
+- `ros2 run crazyflie_examples nice_hover`
 
 CLEANUP:
 - Remove unused variables
 - Consistent spacing, remove unnecessary whitespace
 - Get rid of try / except blocks
 - Refactoring (remove unnecessary variables/functions)
-
-README NOTES:
-- Trajectory format should be
-  ```
-  cf18:
-    type: linear
-    start: [x, y, z]
-    end: [x, y, z]
-  ```
-- `./build-container`
-- `./run-container`
-- `./join-container`
-- `make` (while in `src` directory)
+- Remove unnecessary things like `self.world_frame = self.get_parameter('world_frame').get_parameter_value().string_value` (only really important if used more than once)
+- Purpose of `cmd_vel_stamped`? Is this the same as `cmd_vel_legacy`?
 
 MISCELLANEOUS / UNTESTED:
 - look through ROS documentation, docs files
 - builtin_interfaces/Duration duration
 - ros2 run crazyflie reboot --uri radio://0/80/2M/E7E7E7E706
-- ros2 run crazyflie_examples nice_hover
-- self.create_service(Takeoff, "all/takeoff", self._takeoff_callback)
-- command node broadcasts phase requests on cmd_state
-- crazyflie nodes broadcast readiness on cf_ready

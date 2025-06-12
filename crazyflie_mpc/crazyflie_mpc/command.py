@@ -25,6 +25,7 @@ class CommandNode(Node):
         msg = Int32()
         msg.data = self.state_request
         self.state_pub.publish(msg)
+        self.get_logger().info(f'Phase {self.state_request} requested')
 
         if self.state_request > 3:
             self.get_logger().info('Shutting down')
@@ -36,7 +37,7 @@ class CommandNode(Node):
             self.get_logger().info(f'Crazyflie {msg.data} ready [{sum(self.cfready.values())}/{len(self.cfnames)}]')
             if all(self.cfready.values()):
                 self.get_logger().info(f'Phase {self.state_request} complete')
-                self.timer = self.create_timer(0.5, self.next_phase)
+                self.timer = self.create_timer(1, self.next_phase)
         else:
             self.get_logger().warn(f'Unknown Crazyflie: {msg.data}')
 

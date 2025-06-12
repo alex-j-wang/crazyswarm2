@@ -26,12 +26,12 @@ class MPCDemo(Node):
         super().__init__(
             'mpc_demo',
             allow_undeclared_parameters=True,
-            automatically_declare_parameters_from_overrides=True
+            automatically_declare_parameters_from_overrides=True # TODO: this could lead to some silent bugs
         )
         
         self.world_frame = self.get_parameter('world_frame').get_parameter_value().string_value
         self.frame = self.get_parameter('frame').get_parameter_value().string_value
-        quad_name = self.frame
+        # quad_name = self.frame
 
         self.controller_type = self.get_parameter('controller_type').get_parameter_value().string_value   
         self.control_frequency = self.get_parameter('control_frequency').value
@@ -73,11 +73,10 @@ class MPCDemo(Node):
         
         self.t0 = self.get_clock().now().nanoseconds / 1e9
         self.prev_time = self.get_clock().now().nanoseconds / 1e9
+        self.initial_pos = None
         self.prev_pos = None
         self.prev_vel = np.zeros(3)
-        
-        self.ready_pub.publish(String(data=quad_name))  # publish ready message
-    
+            
     def create_controller(self):
         match self.controller_type:
             case "mpc":
@@ -110,17 +109,10 @@ class MPCDemo(Node):
             
         elif trajectory_type == "waypoint":
             points = []
-            point_index = 0
-            
-            while True:
+            for point_index in range(self.get_parameter('npoints').value):
                 param_name = f"point_{point_index}"
-                try:
-                    point = self.get_parameter(param_name).value
-                    points.append(point)
-                    point_index += 1
-                except:
-                    break
-          
+                point = self.get_parameter(param_name).value
+                points.append(point)
             return np.array(points)
         
         elif trajectory_type == "linear":
@@ -209,7 +201,8 @@ class MPCDemo(Node):
                 case 1:
                     self.get_logger().info("Takeoff requested!")
                     traj_start = self.trajectory_points[0]
-                    self.traj = self.generate_traj(np.vstack((self.prev_pos, traj_start)))
+                    elevated_pos = np.array([self.initial_pos[0], self.initial_pos[1], traj_start[2]])
+                    self.traj = self.generate_traj(np.vstack((self.initial_pos, elevated_pos, traj_start)))
                     self.controller = GeometriControl()
                 case 2:
                     self.get_logger().info("Trajectory requested!")
@@ -218,7 +211,9 @@ class MPCDemo(Node):
                 case 3:
                     self.get_logger().info("Landing requested!")
                     traj_end = self.trajectory_points[-1]
-                    self.traj = self.generate_traj(np.vstack((traj_end, np.array([traj_end[0], traj_end[1], 0.02]))))
+                    elevated_pos = np.array([self.initial_pos[0], self.initial_pos[1], traj_end[2]])
+                    final_pos = np.array([self.initial_pos[0], self.initial_pos[1], self.get_parameter('z_final').value])
+                    self.traj = self.generate_traj(np.vstack((traj_end, elevated_pos, final_pos)))
                     self.controller = GeometriControl()
                 case 4:
                     self.get_logger().info("Shutdown requested!")
@@ -263,8 +258,11 @@ class MPCDemo(Node):
         pos = np.array([transform.transform.translation.x, transform.transform.translation.y, transform.transform.translation.z])
         quat = np.array([transform.transform.rotation.x, transform.transform.rotation.y, transform.transform.rotation.z, transform.transform.rotation.w])
 
-        if self.prev_pos is None:
-            self.prev_pos = pos
+        if self.initial_pos is None:
+            self.get_logger().info(f"Initial position {pos}")
+            self.initial_pos = self.prev_pos = pos
+            self.ready_sent = True
+            self.ready_pub.publish(String(data=self.frame))  # publish ready message
             
         v = (pos - self.prev_pos) / dt # velocity estimate
         v_est_sum = np.sum(np.abs(v))

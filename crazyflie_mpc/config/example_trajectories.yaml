@@ -8,6 +8,7 @@ circle:
 
 waypoint:
   type: "waypoint"
+  npoints: 7
   point_0: [-1.409, 2.826, 0.55]
   point_1: [1.609, 2.826, 0.55]
   point_2: [1.609, 5.826, 0.55]

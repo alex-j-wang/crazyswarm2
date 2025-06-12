@@ -65,7 +65,7 @@ def generate_launch_description():
     mpc_demo_nodes.append(Node(
         package='crazyflie_mpc',
         executable='command.py',
-        name='command',
+        name='mpc_demo',
         namespace='command',
         parameters=[
             {'cfnames': [key for key in crazyflies['robots'].keys() if crazyflies['robots'][key]['enabled']]},
