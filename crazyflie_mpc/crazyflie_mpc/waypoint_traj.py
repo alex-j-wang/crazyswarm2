@@ -22,9 +22,9 @@ def get_min_jerk(points, t):
     return mat
 
 class WaypointTraj(object):
-    def __init__(self, points):
-        self.points         = points
-        self.desired_spd    = 0.2 # 0.75, 3.0
+    def __init__(self, points, desired_speed):
+        self.points        = points
+        self.desired_speed = desired_speed
 
         num_pts     = self.points.shape[0]
         dist        = linalg.norm(np.diff(self.points, axis=0), axis=1)
@@ -53,7 +53,7 @@ class WaypointTraj(object):
             segment_dists = self.points[1:(num_segments + 1), :] - self.points[0:num_segments, :]
             norm_dists = np.linalg.norm(segment_dists, axis=1)
             unit_vec = segment_dists / norm_dists[:, None]
-            segment_times = norm_dists / self.desired_spd
+            segment_times = norm_dists / self.desired_speed
             start_times = np.cumsum(segment_times)
 
             if t < start_times[-1]:
@@ -62,7 +62,7 @@ class WaypointTraj(object):
                 segment_num = idx[0]
 
                 diff_time = t - start_times[segment_num]
-                x_dot = self.desired_spd * unit_vec[segment_num, :]
+                x_dot = self.desired_speed * unit_vec[segment_num, :]
                 x = self.points[segment_num + 1, :] + x_dot * diff_time
             else:  # time exceeds expected time at last waypoint
                 segment_num = num_segments - 1
@@ -72,10 +72,10 @@ class WaypointTraj(object):
             # segment_dist    = self.points[0, :] - self.init_pos
             # norm_dist       = np.linalg.norm(segment_dist)
             # unit_vec        = segment_dist / norm_dist
-            # segment_time    = norm_dist / self.desired_spd
+            # segment_time    = norm_dist / self.desired_speed
             # if t < segment_time:
             #     diff_time   = t - segment_time
-            #     x_dot       = self.desired_spd * unit_vec
+            #     x_dot       = self.desired_speed * unit_vec
             #     x           = self.points + x_dot * diff_time
             # else:
             #     x_dot       = np.zeros(3)

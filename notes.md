@@ -9,6 +9,8 @@ TODO:
 - `waypoint_traj` deal with repeat points (may be fixed by adding durations)
 
 FUTURE PLANS:
+- Better clock alignment for main trajectory?
+- Land in some formation?
 - Use common config file(s) / take config params from `crazyflies.yaml`
 - Understand all magic numbers and add to config (including model filenames)
 - Check Docker build log, see if anything in `requirements.txt` is unnecessary
