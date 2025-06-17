@@ -211,8 +211,11 @@ class MPCDemo(Node):
             case 3:
                 self.get_logger().info('Landing requested!')
                 traj_end = self.trajectory_points[-1]
-                elevated_pos = np.array([self.initial_pos[0], self.initial_pos[1], traj_end[2]])
-                final_pos = np.array([self.initial_pos[0], self.initial_pos[1], self.get_parameter('z_final').value])
+                xf = self.get_parameter('x_final').value
+                yf = self.get_parameter('y_final').value
+                zf = self.get_parameter('z_final').value
+                elevated_pos = np.array([xf, yf, traj_end[2]])
+                final_pos = np.array([xf, yf, zf])
                 self.traj = self.generate_traj(np.vstack([traj_end, elevated_pos, final_pos]))
                 self.controller = GeometriControl()
             case 4:
@@ -232,7 +235,10 @@ class MPCDemo(Node):
         """
         Generates a trajectory object from waypoints
         """
-        desired_speed = self.get_parameter('desired_speed').value
+        if self.m_state == 2:
+            desired_speed = self.get_parameter('desired_speed').value 
+        else:
+            desired_speed = 0.2
         return wt.WaypointTraj(points, desired_speed)
         
     def timer_callback(self):
@@ -252,6 +258,10 @@ class MPCDemo(Node):
         pos = np.array([transform.transform.translation.x, transform.transform.translation.y, transform.transform.translation.z])
         quat = np.array([transform.transform.rotation.x, transform.transform.rotation.y, transform.transform.rotation.z, transform.transform.rotation.w])
         
+        if self.initial_pos is None and np.abs(pos).sum() == 0:
+            self.get_logger().warn(f'Ignoring initial position {pos}')
+            return
+
         # Check for initial position reading
         if self.initial_pos is None:
             self.get_logger().info(f'Initial position {pos}')
@@ -260,7 +270,7 @@ class MPCDemo(Node):
             self.ready_pub.publish(String(data=self.frame))
             
         v = (pos - self.prev_pos) / dt
-        v_est_sum = np.sum(np.abs(v))
+        v_est_sum = np.abs(v).sum()
         if v_est_sum < 1e-6:
             v = self.prev_vel
         v = np.clip(v, -0.7, 0.7)
@@ -269,7 +279,7 @@ class MPCDemo(Node):
             msg = Twist()
             self.cmd_pub.publish(msg)
             return
-            
+                    
         # if self.trajectory_type == 'tracking':
         #     interp_time = [1, 4]
         #     points = interp1d(interp_time, np.vstack([self.curr_pos, self.target_pos]), axis=0)([1, 2, 3, 4]) # Trajectory to target
@@ -326,6 +336,8 @@ class MPCDemo(Node):
         min_cmd = 20000 # Was 10000
         u1_trim = 0.327
         c = min_cmd
+        if self.m_state == 3:
+            c -= 10000
         m = (trim_cmd - min_cmd) / u1_trim
         mapped_u1 = min(u1 * m + c, 60000.)
         return mapped_u1

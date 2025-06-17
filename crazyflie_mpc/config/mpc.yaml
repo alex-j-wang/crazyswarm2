@@ -1,20 +1,19 @@
 trajectories:
-  cf13:
+  cf2:
     type: "waypoint"
-    p0: [1.0, 0.0, 1.6]
-    p1: [0.8, 0.0, 1.5]
-    p2: [-0.8, 0.0, 1.5]
-    p3: [-1.0, 0.0, 1.6]
-  cf18:
+    p0: [1.0, 0.0, 0.4]
+    p1: [0.8, 0.0, 0.5]
+    p2: [-0.8, 0.0, 0.5]
+    p3: [-1.0, 0.0, 0.4]
+  cf90:
     type: "waypoint"
-    p0: [1.0, 0.0, 0.9]
+    p0: [1.0, 0.0, 1.1]
     p1: [0.8, 0.0, 1.0]
     p2: [-0.8, 0.0, 1.0]
-    p3: [-1.0, 0.0, 0.9]
-
+    p3: [-1.0, 0.0, 1.1]
 constants:
   controller_type: "mpc" # Options: geometric, mpc, hybrid, gp
-  control_frequency: 100.0 # Hz    
+  control_frequency: 50.0 # Hz
   z_final: 0.02 # Height above ground at which power should be cut, m
   
   # Quadrotor physical parameters

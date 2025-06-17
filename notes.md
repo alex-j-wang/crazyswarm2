@@ -38,6 +38,9 @@ CLEANUP:
 - Purpose of `cmd_vel_stamped`? Is this the same as `cmd_vel_legacy`?
 
 MISCELLANEOUS / UNTESTED:
-- look through ROS documentation, docs files
-- builtin_interfaces/Duration duration
-- ros2 run crazyflie reboot --uri radio://0/80/2M/E7E7E7E706
+look through ROS documentation, docs files
+builtin_interfaces/Duration duration
+ros2 run crazyflie reboot --uri radio://*/120/2M/E7E7E7E702
+ros2 run crazyflie reboot --uri radio://*/80/2M/E7E7E7E744
+ros2 run crazyflie reboot --uri radio://*/120/2M/E7E7E7E706
+ros2 run tf2_ros tf2_echo world_frame cf2

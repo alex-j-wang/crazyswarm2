@@ -25,10 +25,10 @@ robots:
     initial_position: [0.0, 0.5, 0.0]
     type: cf21_m1 # see robot_types
   cf2:
-    enabled: false
-    uri: radio://*/100/2M/E7E7E7E702
-    initial_position: [1.0, -0.5, 0.0]
-    type: cf21_single_marker # see robot_types
+    enabled: true
+    uri: radio://*/120/2M/E7E7E7E702
+    initial_position: [0.0, 0.0, 0.0]
+    type: cf21 # see robot_types
   cf3:
     enabled: false
     uri: radio://*/120/2M/E7E7E7E703
@@ -80,7 +80,7 @@ robots:
     initial_position: [-0.23, 0., 0.0]
     type: cf21 # see robot_types
   cf13:
-    enabled: true
+    enabled: false
     uri: radio://*/120/2M/E7E7E7E70D
     initial_position: [0.0, 0.0, 0.0]
     type: cf21
@@ -105,7 +105,7 @@ robots:
     initial_position: [1.0, -1.0, 0.0]
     type: cf21_single_marker # see robot_types
   cf18:
-    enabled: true
+    enabled: false
     uri: radio://*/80/2M/E7E7E7E712
     initial_position: [0.0, 0.0, 0.0]
     type: cf21 # see robot_types
@@ -260,16 +260,31 @@ robots:
     uri: radio://*/80/2M/E7E7E7E743
     initial_position: [-2.5, 0, 0]
     type: cf21_m3 # see robot_types
+  cf68:
+    enabled: false
+    uri: radio://*/80/2M/E7E7E7E744
+    initial_position: [0.0, 0.0, 0.0]
+    type: cf21 # see robot_types
   cf69:
     enabled: false
     uri: radio://*/80/2M/E7E7E7E745
     initial_position: [0.0, 0.0, 0.0]
+    type: cf21 # see robot_types
+  cf71:
+    enabled: false
+    uri: radio://*/80/2M/E7E7E7E747
+    initial_position: [0.0, 0., 0.]
     type: cf21 # see robot_types
   cf72:
     enabled: false
     uri: radio://*/80/2M/E7E7E7E748
     initial_position: [0.0, 0., 0.]
     type: cf21_single_marker # see robot_types
+  cf90:
+    enabled: true
+    uri: radio://*/120/2M/E7E7E7E706
+    initial_position: [0.5, 0.0, 0.0]
+    type: cf21 # see robot_types
 
 robot_types:
   cf21:
@@ -379,7 +394,7 @@ all:
     default_topics:
      # remove to disable default topic
       pose:
-        frequency: 10 # Hz
+        frequency: 1 # Hz
       status:
         frequency: 1 # Hz
       imu:

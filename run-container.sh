@@ -13,4 +13,5 @@ docker run -it --privileged -d \
   --volume /dev/bus/usb:/dev/bus/usb \
   --name "${DOCKER_REPOSITORY}" \
   --network host \
+  --shm-size=1000mb \
   "${DOCKER_IMAGE}" bash

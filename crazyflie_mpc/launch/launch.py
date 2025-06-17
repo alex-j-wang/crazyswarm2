@@ -23,7 +23,7 @@ def generate_launch_description():
     with open(mpc_yaml_path, 'r') as f:
         mpc = yaml.safe_load(f)
         
-    world_frame = 'world_frame'
+    world_frame = 'world'
     mpc_demo_nodes = []
     static_tf_nodes = []
 
@@ -42,6 +42,8 @@ def generate_launch_description():
                 parameters=[
                     {'world_frame': world_frame},
                     {'frame': key},
+                    {'x_final': value['initial_position'][0]},
+                    {'y_final': value['initial_position'][1]},
                     mpc['constants'],
                     mpc['trajectories'][key]
                 ],
