@@ -2,15 +2,19 @@ https://docs.ros.org/en/humble/index.html
 https://en.cppreference.com/w/
 
 TODO:
+- Find double sided tape for cf90
+- Replace propellers
+- Plot desired vs. actual trajectories, plot deviation from prescribed
+- Prompt to rerun at end of script
 - Fix casadi warnings... downgrade package?
+- Look at crazyflie_online (crazyflie_ros package)
+
+FUTURE PLANS:
 - Multi-step trajectories
 - Give each trajectory step an optional duration field; speed defaults to the maximum velocity parameter
 - Collision detection and avoidance for trajectories?
 - `waypoint_traj` deal with repeat points (may be fixed by adding durations)
-
-FUTURE PLANS:
 - Better clock alignment for main trajectory?
-- Land in some formation?
 - Use common config file(s) / take config params from `crazyflies.yaml`
 - Understand all magic numbers and add to config (including model filenames)
 - Check Docker build log, see if anything in `requirements.txt` is unnecessary
@@ -44,3 +48,8 @@ ros2 run crazyflie reboot --uri radio://*/120/2M/E7E7E7E702
 ros2 run crazyflie reboot --uri radio://*/80/2M/E7E7E7E744
 ros2 run crazyflie reboot --uri radio://*/120/2M/E7E7E7E706
 ros2 run tf2_ros tf2_echo world_frame cf2
+
+VICON SETUP
+- Object name
+- CTRL + ALT to select points
+- Create
