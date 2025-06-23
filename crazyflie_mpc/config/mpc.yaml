@@ -1,0 +1,33 @@
+trajectories:
+  cf2:
+    type: "waypoint"
+    p0: [1.0, 0.0, 0.4]
+    p1: [0.8, 0.0, 0.5]
+    p2: [-0.8, 0.0, 0.5]
+    p3: [-1.0, 0.0, 0.4]
+  cf90:
+    type: "waypoint"
+    p0: [1.0, 0.0, 1.1]
+    p1: [0.8, 0.0, 1.0]
+    p2: [-0.8, 0.0, 1.0]
+    p3: [-1.0, 0.0, 1.1]
+constants:
+  controller_type: "mpc" # Options: geometric, mpc, hybrid, gp
+  control_frequency: 50.0 # Hz
+  z_final: 0.02 # Height above ground at which power should be cut, m
+  
+  # Quadrotor physical parameters
+  mass: 0.03 # kg
+  Ixx: 1.43e-5 # kg*m^2
+  Iyy: 1.43e-5 # kg*m^2
+  Izz: 2.89e-5 # kg*m^2
+  arm_length: 0.046 # meters
+  
+  # Geometric controller gains
+  pos_kp: 2.0
+  posz_kp: 4.0
+  geo_rollpitch_kp: 10.0
+  geo_yaw_kp: 50.0
+  
+  # Waypoint parameters
+  desired_speed: 0.5 # m/s

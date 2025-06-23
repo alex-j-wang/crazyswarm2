@@ -22,6 +22,7 @@ install(PROGRAMS
   crazyflie_mpc/mpc_control.py
   crazyflie_mpc/waypoint_traj.py
   crazyflie_mpc/models.py
+  crazyflie_mpc/command.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

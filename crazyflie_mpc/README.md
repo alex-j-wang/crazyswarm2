@@ -1,99 +1,93 @@
-_NB: this was AI generated, no guarantees regarding its accuracy!_
-
 # Crazyflie MPC
 
-ROS2 package for model predictive control of Crazyflie quadrotors.
+ROS2 package for running model predictive control on Crazyflie quadrotors.
 
 ## Overview
 
-This package provides MPC (Model Predictive Control) and other control algorithms for trajectory tracking with the Crazyflie quadrotor platform. The controllers include:
+This package provides MPC (Model Predictive Control) and other control algorithms for trajectory tracking using the Bitcraze Crazyflie quadrotor. The controllers include:
 
 - Geometric Controller
-- Model Predictive Controller (MPC)
-- Hybrid Controller
 - Gaussian Process (GP) Controller
+- Hybrid Controller
+- Model Predictive Controller (MPC)
 
 ## Prerequisites
 
-- ROS2 Humble or newer
-- Crazyflie ROS2 packages (`crazyflie`, `crazyflie_interfaces`)
-- Python libraries: numpy, scipy
+Docker must be installed on your system. For the container to access your USB bus, Linux is recommended. Requirements should be downloaded by the Dockerfile. This package interfaces with [crazyswarm2](https://github.com/IMRCLab/crazyswarm2) running on ROS2 Humble.
 
 ## Installation
 
-Clone this repository into your ROS2 workspace:
+Clone this repository into any folder:
 
 ```bash
-cd ~/ros_ws/src
-git clone https://github.com/your-username/crazyflie_mpc.git
-cd ..
-colcon build --packages-select crazyflie_mpc
-source install/setup.bash
+cd ~/path-to-some-folder/
+git clone https://github.com/alex-j-wang/crazyswarm2.git
 ```
+
+Build the Docker container:
+
+```bash
+cd crazyswarm2
+./build-container
+```
+
+This step might take a while to complete. Once finished, run the container:
+
+```bash
+./run-container
+```
+
+The container will detach. You can now connect to it using VSCode Dev Containers or through the command line:
+
+```bash
+./join-container
+```
+
+Navigate to the `src` directory and build the packages:
+
+```bash
+cd src
+make
+```
+
+Installation should be complete.
 
 ## Usage
 
 ### Basic Demo
 
-To run the MPC controller with a simple trajectory:
+To run the MPC controller, use:
 
 ```bash
-ros2 launch crazyflie_mpc simple_mpc.launch.py
+ros2 launch crazyflie launch.py
+ros2 launch crazyflie_mpc launch.py
 ```
 
-### Select Trajectory Type
-
-The package comes with several predefined trajectory types:
-- Circle
-- Square
-- Linear
-
-You can select a trajectory type when launching:
-
-```bash
-ros2 launch crazyflie_mpc simple_mpc.launch.py trajectory:=circle
-```
-
-### Full Integration with Crazyflie
-
-To use with a real Crazyflie and motion capture system:
-
-```bash
-ros2 launch crazyflie_mpc mpc_demo.launch.py uri:=radio://0/80/2M/E7E7E7E7E7 frame:=cf1 use_mocap:=true
-```
+These can be performed in any directory once the packages are built.
 
 ### Controller Parameters
 
-You can configure controller parameters in:
-- `/config/mpc_config.yaml`
+Craztflies must be enabled in `/config/crazyflies.yaml` under the `crazyflie` package.
 
-Different trajectory parameters can be configured in:
-- `/config/trajectories.yaml`
-
-## Services
-
-- Takeoff: Triggers the Crazyflie to take off
-- Land: Triggers the Crazyflie to land
+You can configure controller parameters in `/config/mpc.yaml`. Each active Crazyflie should have a trajectory specified here. Trajectory formats are demonstrated in `/config/example_trajectories.yaml`.
 
 ## Topics
 
 ### Subscribed Topics
 
-- `/crazyflie/imu` (sensor_msgs/Imu): IMU data from the Crazyflie
-- `/vicon/[frame_name]/pose` (geometry_msgs/PoseStamped): Pose data from motion capture
+- `imu` (sensor_msgs/Imu): IMU data from the Crazyflie
 
 ### Published Topics
 
-- `cmd_vel` (geometry_msgs/Twist): Velocity commands for the Crazyflie
 - `est_vel` (geometry_msgs/TwistStamped): Estimated velocity
+- `u_euler` (geometry_msgs/TwistStamped): ???
+- `cmd_vel_stamped` (geometry_msgs/Twist): Time-stamped velocity command
+- `cmd_vel_legacy` (geometry_msgs/Twist): Velocity command sent to the Crazyflie
 - `goal` (geometry_msgs/TwistStamped): Current goal point along the trajectory
 - `tf_pos` (geometry_msgs/PoseStamped): Position from TF
 
-## License
+### Other Topics
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Acknowledgments
-
-- Original ROS1 implementation by [original author]
-- Adapted to ROS2 by [your name]
+The package uses two internal topics to keep behavior synchronized:
+- `cmd_state` (std_msgs/Int32): Phase requests from command node
+- `cf_ready` (std_msgs/String): Readiness broadcasts from Crazyflie nodes

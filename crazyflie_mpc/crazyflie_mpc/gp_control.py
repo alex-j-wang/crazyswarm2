@@ -1,12 +1,12 @@
 from scipy.spatial.transform import Rotation
 from casadi import *
 from tf_transformations import euler_from_matrix
-import sys
 import pickle
-from NODE import *
 
 class GPControl(object):
-    def __init__(self):
+    def __init__(self, control_frequency):
+        self.control_frequency = control_frequency
+        
         # Quadrotor physical parameters.
         self.mass = 0.03  # quad_params['mass'] # kg
         self.Ixx = 1.43e-5  # quad_params['Ixx']  # kg*m^2
@@ -92,7 +92,7 @@ class GPControl(object):
         yaw_des = flat_output['yaw']
 
         # MPC
-        if self.downsample_cnt % 50 == 0: # This assumes update() to be called at 200Hz
+        if self.downsample_cnt % (self.control_frequency // 4) == 0:
             opti = Opti()
             x = opti.variable(self.num_states, self.N_ctrl + 1)  # States
             u = opti.variable(self.num_inputs, self.N_ctrl)  # Control input

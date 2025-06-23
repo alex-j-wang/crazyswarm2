@@ -3,9 +3,9 @@
 <package format="3">
   <name>crazyflie_mpc</name>
   <version>1.0.0</version>
-  <description>The crazyflie_mpc package</description>
+  <description>Package for MPC controller testing</description>
 
-  <maintainer email="tom@todo.todo">tom</maintainer>
+  <maintainer email="alexander_wang@brown.edu">Alex Wang</maintainer>
   <license>TODO</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>

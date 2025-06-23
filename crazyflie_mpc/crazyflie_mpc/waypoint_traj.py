@@ -22,9 +22,9 @@ def get_min_jerk(points, t):
     return mat
 
 class WaypointTraj(object):
-    def __init__(self, points):
-        self.points         = points
-        self.desired_spd    = 0.5 # 0.75, 3.0
+    def __init__(self, points, desired_speed):
+        self.points        = points
+        self.desired_speed = desired_speed
 
         num_pts     = self.points.shape[0]
         dist        = linalg.norm(np.diff(self.points, axis=0), axis=1)
@@ -39,49 +39,50 @@ class WaypointTraj(object):
         self.coeff_mat = get_min_jerk(self.points, self.time)
 
     def update(self, t):
-        x = np.zeros((3,))
-        x_dot = np.zeros((3,))
-
-        x_ddot = np.zeros((3,))
-        x_dddot = np.zeros((3,))
-        x_ddddot = np.zeros((3,))
+        x = np.zeros(3)
+        x_dot = np.zeros(3)
+        x_ddot = np.zeros(3)
+        x_dddot = np.zeros(3)
+        x_ddddot = np.zeros(3)
         yaw = 0
         yaw_dot = 0
+        done = True
 
         num_segments = len(self.points) - 1
         if num_segments > 0:
             segment_dists = self.points[1:(num_segments + 1), :] - self.points[0:num_segments, :]
             norm_dists = np.linalg.norm(segment_dists, axis=1)
             unit_vec = segment_dists / norm_dists[:, None]
-            segment_times = norm_dists / self.desired_spd
+            segment_times = norm_dists / self.desired_speed
             start_times = np.cumsum(segment_times)
 
-            if t < start_times[len(start_times) - 1]:
+            if t < start_times[-1]:
+                done = False
                 idx = np.where(t <= start_times)[0]
                 segment_num = idx[0]
 
                 diff_time = t - start_times[segment_num]
-                x_dot = self.desired_spd * unit_vec[segment_num, :]
+                x_dot = self.desired_speed * unit_vec[segment_num, :]
                 x = self.points[segment_num + 1, :] + x_dot * diff_time
             else:  # time exceeds expected time at last waypoint
                 segment_num = num_segments - 1
-                x_dot = np.zeros((3,))
+                x_dot = np.zeros(3)
                 x = self.points[segment_num + 1, :]
         else:
             # segment_dist    = self.points[0, :] - self.init_pos
             # norm_dist       = np.linalg.norm(segment_dist)
             # unit_vec        = segment_dist / norm_dist
-            # segment_time    = norm_dist / self.desired_spd
+            # segment_time    = norm_dist / self.desired_speed
             # if t < segment_time:
             #     diff_time   = t - segment_time
-            #     x_dot       = self.desired_spd * unit_vec
+            #     x_dot       = self.desired_speed * unit_vec
             #     x           = self.points + x_dot * diff_time
             # else:
-            #     x_dot       = np.zeros((3,))
+            #     x_dot       = np.zeros(3)
             #     x           = self.points
 
-            x_dot = np.zeros((3,))
+            x_dot = np.zeros(3)
             x = self.points
 
-        flat_output = {'x':x, 'x_dot':x_dot, 'x_ddot':x_ddot, 'x_dddot':x_dddot, 'x_ddddot':x_ddddot, 'yaw':yaw, 'yaw_dot':yaw_dot}
+        flat_output = {'x':x, 'x_dot':x_dot, 'x_ddot':x_ddot, 'x_dddot':x_dddot, 'x_ddddot':x_ddddot, 'yaw':yaw, 'yaw_dot':yaw_dot, 'done':done}
         return flat_output

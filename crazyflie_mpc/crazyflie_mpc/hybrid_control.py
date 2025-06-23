@@ -2,10 +2,11 @@ from casadi import *
 from scipy.spatial.transform import Rotation
 from tf_transformations import euler_from_matrix
 import torch
-from NODE import *
 
 class HybridControl(object):
-    def __init__(self):
+    def __init__(self, control_frequency):
+        self.control_frequency = control_frequency
+        
         # Quadrotor physical parameters.
         self.mass = 0.03  # quad_params['mass'] # kg
         self.Ixx = 1.43e-5  # quad_params['Ixx']  # kg*m^2
@@ -53,7 +54,7 @@ class HybridControl(object):
         ode             = vertcat(xdot, xdotdot)
         
         # loading neural network parameters
-        ode_torch = torch.load("/ros_ws/src/crazyflie_mpc/data/knode_models/rigid_1layer_2traj.pth", map_location=torch.device('cpu'))['ode_train']
+        ode_torch = torch.load("/ros_ws/src/crazyflie_mpc/data/knode_models/rigid_1layer_2traj.pth", map_location=torch.device('cpu'), weights_only=False)['ode_train']
         param_ls = []
         for _, layer in ode_torch.func.state_dict().items():
             param_ls.append(layer.detach().cpu().numpy())
@@ -87,7 +88,7 @@ class HybridControl(object):
         yaw_des = flat_output['yaw']
 
         # MPC
-        if self.downsample_cnt % 50 == 0: # This assumes update() to be called at 200Hz
+        if self.downsample_cnt % (self.control_frequency // 4) == 0:
             opti = Opti()
             x = opti.variable(self.num_states, self.N_ctrl + 1)  # States
             u = opti.variable(self.num_inputs, self.N_ctrl)  # Control input
