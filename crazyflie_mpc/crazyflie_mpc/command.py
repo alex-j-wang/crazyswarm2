@@ -19,6 +19,12 @@ class CommandNode(Node):
 
     def next_phase(self):
         self.timer.cancel()
+
+        if self.state_request > 3:
+            self.get_logger().info('Shutting down')
+            self.destroy_node()
+            exit(0)
+
         self.state_request += 1
         for name in self.cfready:
             self.cfready[name] = False
@@ -33,11 +39,6 @@ class CommandNode(Node):
             self.get_logger().info(f'Crazyflie {msg.data} ready [{sum(self.cfready.values())}/{len(self.cfnames)}]')
             if all(self.cfready.values()):
                 self.get_logger().info(f'Phase {self.state_request} complete')
-
-                if self.state_request > 3:
-                    self.get_logger().info('Shutting down')
-                    rclpy.shutdown()
-
                 self.timer = self.create_timer(3, self.next_phase)
         else:
             self.get_logger().warn(f'Unknown Crazyflie: {msg.data}')
@@ -46,7 +47,6 @@ def main():
     rclpy.init()
     node = CommandNode()
     rclpy.spin(node)
-    node.destroy_node()
 
 if __name__ == '__main__':
     main()

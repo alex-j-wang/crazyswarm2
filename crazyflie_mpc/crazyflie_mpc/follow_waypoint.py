@@ -274,8 +274,11 @@ class MPCDemo(Node):
             if not self.ready_sent:
                 self.ready_sent = True
                 self.ready_pub.publish(String(data=self.frame))
+            if self.m_state > 3:
+                self.destroy_node()
+                exit(0)
             return
-                    
+        
         # if self.trajectory_type == 'tracking':
         #     interp_time = [1, 4]
         #     points = interp1d(interp_time, np.vstack([self.curr_pos, self.target_pos]), axis=0)([1, 2, 3, 4]) # Trajectory to target
@@ -418,7 +421,6 @@ def main(args=None):
     rclpy.init(args=args)
     mpc_demo = MPCDemo()
     rclpy.spin(mpc_demo)
-    mpc_demo.destroy_node()
     
 if __name__ == '__main__':
     main()

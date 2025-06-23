@@ -3,13 +3,13 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.conditions import IfCondition
 from launch.logging import get_logger
+from launch.substitutions import PythonExpression
 from launch_ros.actions import Node
 import yaml
 
 from launch import LaunchDescription
-from launch.actions import RegisterEventHandler, EmitEvent
+from launch.actions import RegisterEventHandler, Shutdown
 from launch.event_handlers import OnProcessExit
-from launch.events import Shutdown
 from launch_ros.actions import Node
 
 def generate_launch_description():
@@ -85,13 +85,13 @@ def generate_launch_description():
         name='mpc_command',
         namespace='command',
         parameters=[{ 'cfnames': cfnames }],
-        output='screen'
+        output='screen',
     )
 
     shutdown_handler = RegisterEventHandler(
         OnProcessExit(
             target_action=command_node,
-            on_exit=[EmitEvent(event=Shutdown(reason='Crazyflies landed'))]
+            on_exit=[Shutdown(reason='trajectories complete')]
         )
     )
 
@@ -106,7 +106,7 @@ def generate_launch_description():
             },
             mpc['plotting'],
         ],
-        condition=IfCondition(mpc['plotting']['enabled']),
+        condition=IfCondition(PythonExpression(str(mpc['plotting']['enabled']))),
         output='screen'
     )
 
@@ -115,7 +115,7 @@ def generate_launch_description():
         executable='rviz2',
         name='mpc_rviz',
         arguments=['-d', rviz_config_path],
-        condition=IfCondition(mpc['plotting']['enabled'] and mpc['plotting']['use_rviz'])
+        condition=IfCondition(PythonExpression(str(mpc['plotting']['enabled'] and mpc['plotting']['use_rviz'])))
     )
     
     return LaunchDescription(mpc_demo_nodes + static_tf_nodes + [command_node, shutdown_handler, plotting_node, rviz_node])
