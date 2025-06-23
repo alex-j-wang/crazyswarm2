@@ -63,8 +63,9 @@ RUN git submodule update --init --recursive
 WORKDIR /ros_ws/src/crazyflie_mpc
 RUN pip install data
 
-# Run install script and pass in the architecture
-# RUN ARCH=$(dpkg --print-architecture) && echo "Building driver with $ARCH" && /ros_ws/src/install_spot_ros2.sh --$ARCH
+# Special requirements for PyQt5
+RUN pip install --upgrade pip
+RUN pip install PyQt5==5.15.11 --config-settings --confirm-license=
 
 # Build packages with Colcon
 WORKDIR /ros_ws/

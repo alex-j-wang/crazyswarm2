@@ -67,7 +67,7 @@ These can be performed in any directory once the packages are built.
 
 ### Controller Parameters
 
-Craztflies must be enabled in `/config/crazyflies.yaml` under the `crazyflie` package.
+Crazyflies must be enabled in `/config/crazyflies.yaml` under the `crazyflie` package.
 
 You can configure controller parameters in `/config/mpc.yaml`. Each active Crazyflie should have a trajectory specified here. Trajectory formats are demonstrated in `/config/example_trajectories.yaml`.
 

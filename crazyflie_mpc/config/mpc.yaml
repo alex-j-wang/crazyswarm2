@@ -11,6 +11,7 @@ trajectories:
     p1: [0.8, 0.0, 1.0]
     p2: [-0.8, 0.0, 1.0]
     p3: [-1.0, 0.0, 1.1]
+
 constants:
   controller_type: "mpc" # Options: geometric, mpc, hybrid, gp
   control_frequency: 50.0 # Hz
@@ -31,3 +32,9 @@ constants:
   
   # Waypoint parameters
   desired_speed: 0.5 # m/s
+
+plotting:
+  enabled: true # Enable plotting of intended vs. actual trajectories
+  plot_history_seconds: 10.0 # Duration of history to plot, seconds
+  update_frequency: 30.0 # Hz
+  use_rviz: true # Use RViz for visualization

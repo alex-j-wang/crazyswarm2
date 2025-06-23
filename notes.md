@@ -26,6 +26,7 @@ FUTURE PLANS:
 - Set up SIM backend (`cmd_vel_legacy` not yet implemented)
 - ~~Transition to crazyswarm2 API~~ (using `cmd_vel_legacy` switches to low-level control)
 - Very long term: ideally we get drones with cameras that can see each other, bypassing the need for external motion tracking
+- Consistency with declaring parameters, get_parameter_value()
 
 USEFUL COMMANDS:
 - `ros2 topic list`
