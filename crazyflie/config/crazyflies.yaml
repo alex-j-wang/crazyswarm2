@@ -82,7 +82,7 @@ robots:
   cf13:
     enabled: false
     uri: radio://*/120/2M/E7E7E7E70D
-    initial_position: [0.0, 0.0, 0.0]
+    initial_position: [1.0, 0.0, 0.0]
     type: cf21
   cf14:
     enabled: false
