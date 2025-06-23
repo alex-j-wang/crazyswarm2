@@ -27,16 +27,17 @@ class CommandNode(Node):
         self.state_pub.publish(msg)
         self.get_logger().info(f'Phase {self.state_request} requested')
 
-        if self.state_request > 3:
-            self.get_logger().info('Shutting down')
-            rclpy.shutdown()
-
     def ready_callback(self, msg):
         if msg.data in self.cfready:
             self.cfready[msg.data] = True
             self.get_logger().info(f'Crazyflie {msg.data} ready [{sum(self.cfready.values())}/{len(self.cfnames)}]')
             if all(self.cfready.values()):
                 self.get_logger().info(f'Phase {self.state_request} complete')
+
+                if self.state_request > 3:
+                    self.get_logger().info('Shutting down')
+                    rclpy.shutdown()
+
                 self.timer = self.create_timer(3, self.next_phase)
         else:
             self.get_logger().warn(f'Unknown Crazyflie: {msg.data}')

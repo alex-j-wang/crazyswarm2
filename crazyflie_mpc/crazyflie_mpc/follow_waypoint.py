@@ -41,6 +41,7 @@ class MPCDemo(Node):
         # self.curr_pos = np.zeros(3)
         # self.target_pos = np.zeros(3)
         # self.curr_quat = np.zeros(4)
+        self.reduction = 0 # Used in map_u1, TODO: remove
         
         # Subscribers and publishers
         self.est_vel_pub = self.create_publisher(TwistStamped, 'est_vel', 1) # Estimated velocity
@@ -202,11 +203,12 @@ class MPCDemo(Node):
                 self.get_logger().info('Takeoff requested!')
                 traj_start = self.trajectory_points[0]
                 elevated_pos = np.array([self.initial_pos[0], self.initial_pos[1], traj_start[2]])
-                self.traj = self.generate_traj(np.vstack([self.initial_pos, elevated_pos, traj_start]))
+                self.traj = self.generate_traj(np.vstack([self.initial_pos, elevated_pos, traj_start]), 0.2)
                 self.controller = GeometriControl()
             case 2:
                 self.get_logger().info('Trajectory requested!')
-                self.traj = self.generate_traj(self.trajectory_points)
+                desired_speed = self.get_parameter('desired_speed').value
+                self.traj = self.generate_traj(self.trajectory_points, desired_speed)
                 self.controller = self.create_controller()
             case 3:
                 self.get_logger().info('Landing requested!')
@@ -216,13 +218,10 @@ class MPCDemo(Node):
                 zf = self.get_parameter('z_final').value
                 elevated_pos = np.array([xf, yf, traj_end[2]])
                 final_pos = np.array([xf, yf, zf])
-                self.traj = self.generate_traj(np.vstack([traj_end, elevated_pos, final_pos]))
+                self.traj = self.generate_traj(np.vstack([traj_end, elevated_pos, final_pos]), 0.2)
                 self.controller = GeometriControl()
             case 4:
                 self.get_logger().info('Shutdown requested!')
-                msg = Twist()
-                self.cmd_pub.publish(msg)
-                rclpy.shutdown()
             case _:
                 self.get_logger().warn(f"State request '{msg.data}' invalid")
                 return
@@ -231,14 +230,10 @@ class MPCDemo(Node):
         self.m_state = msg.data
         self.ready_sent = False
             
-    def generate_traj(self, points):
+    def generate_traj(self, points, desired_speed):
         """
         Generates a trajectory object from waypoints
         """
-        if self.m_state == 2:
-            desired_speed = self.get_parameter('desired_speed').value 
-        else:
-            desired_speed = 0.2
         return wt.WaypointTraj(points, desired_speed)
         
     def timer_callback(self):
@@ -266,8 +261,6 @@ class MPCDemo(Node):
         if self.initial_pos is None:
             self.get_logger().info(f'Initial position {pos}')
             self.initial_pos = self.prev_pos = pos
-            self.ready_sent = True
-            self.ready_pub.publish(String(data=self.frame))
             
         v = (pos - self.prev_pos) / dt
         v_est_sum = np.abs(v).sum()
@@ -275,9 +268,12 @@ class MPCDemo(Node):
             v = self.prev_vel
         v = np.clip(v, -0.7, 0.7)
         
-        if self.m_state == 0:
+        if self.m_state in (0, 4):
             msg = Twist()
             self.cmd_pub.publish(msg)
+            if not self.ready_sent:
+                self.ready_sent = True
+                self.ready_pub.publish(String(data=self.frame))
             return
                     
         # if self.trajectory_type == 'tracking':
@@ -336,8 +332,11 @@ class MPCDemo(Node):
         min_cmd = 20000 # Was 10000
         u1_trim = 0.327
         c = min_cmd
+        # TODO: remove
         if self.m_state == 3:
-            c -= 10000
+            if self.reduction < 10000:
+                self.reduction += 30
+            c -= self.reduction
         m = (trim_cmd - min_cmd) / u1_trim
         mapped_u1 = min(u1 * m + c, 60000.)
         return mapped_u1

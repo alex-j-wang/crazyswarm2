@@ -6,6 +6,12 @@ from launch.logging import get_logger
 from launch_ros.actions import Node
 import yaml
 
+from launch import LaunchDescription
+from launch.actions import RegisterEventHandler, EmitEvent
+from launch.event_handlers import OnProcessExit
+from launch.events import Shutdown
+from launch_ros.actions import Node
+
 def generate_launch_description():
     logger = get_logger('launch')
 
@@ -73,18 +79,23 @@ def generate_launch_description():
 
             cfnames.append(key)
 
-    # Command node
-    mpc_demo_nodes.append(Node(
+    command_node = Node(
         package='crazyflie_mpc',
         executable='command.py',
         name='mpc_command',
         namespace='command',
         parameters=[{ 'cfnames': cfnames }],
         output='screen'
-    ))
+    )
 
-    # Plotting node
-    mpc_demo_nodes.append(Node(
+    shutdown_handler = RegisterEventHandler(
+        OnProcessExit(
+            target_action=command_node,
+            on_exit=[EmitEvent(event=Shutdown(reason='Crazyflies landed'))]
+        )
+    )
+
+    plotting_node = Node(
         package='crazyflie_mpc',
         executable='trajectory_plotter.py',
         name='mpc_plotter',
@@ -97,15 +108,14 @@ def generate_launch_description():
         ],
         condition=IfCondition(mpc['plotting']['enabled']),
         output='screen'
-    ))
+    )
 
-    # RViz node
-    mpc_demo_nodes.append(Node(
+    rviz_node = Node(
         package='rviz2',
         executable='rviz2',
         name='mpc_rviz',
         arguments=['-d', rviz_config_path],
         condition=IfCondition(mpc['plotting']['enabled'] and mpc['plotting']['use_rviz'])
-    ))
+    )
     
-    return LaunchDescription(mpc_demo_nodes + static_tf_nodes)
+    return LaunchDescription(mpc_demo_nodes + static_tf_nodes + [command_node, shutdown_handler, plotting_node, rviz_node])
