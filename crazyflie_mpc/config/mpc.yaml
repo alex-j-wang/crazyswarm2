@@ -33,8 +33,5 @@ constants:
   # Waypoint parameters
   desired_speed: 0.5 # m/s
 
-plotting:
-  enabled: true # Enable plotting of intended vs. actual trajectories
-  plot_history_seconds: 10.0 # Duration of history to plot, seconds
-  update_frequency: 30.0 # Hz
-  use_rviz: true # Use RViz for visualization
+ # Enable plotting of intended vs. actual trajectories
+  plotting: true

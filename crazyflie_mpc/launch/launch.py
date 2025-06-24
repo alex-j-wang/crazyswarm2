@@ -24,11 +24,7 @@ def generate_launch_description():
         get_package_share_directory('crazyflie_mpc'),
         'config',
         'mpc.yaml')
-    rviz_config_path = os.path.join(
-        get_package_share_directory('crazyflie_mpc'),
-        'config',
-        'trajectory_plotter.rviz')
-
+    
     with open(crazyflies_yaml_path, 'r') as f:
         crazyflies = yaml.safe_load(f)
     with open(mpc_yaml_path, 'r') as f:
@@ -104,18 +100,9 @@ def generate_launch_description():
                 'world_frame': world_frame,
                 'cfnames': cfnames,
             },
-            mpc['plotting'],
         ],
-        condition=IfCondition(PythonExpression(str(mpc['plotting']['enabled']))),
+        condition=IfCondition(PythonExpression(str(mpc['constants']['plotting']))),
         output='screen'
     )
 
-    rviz_node = Node(
-        package='rviz2',
-        executable='rviz2',
-        name='mpc_rviz',
-        arguments=['-d', rviz_config_path],
-        condition=IfCondition(PythonExpression(str(mpc['plotting']['enabled'] and mpc['plotting']['use_rviz'])))
-    )
-    
-    return LaunchDescription(mpc_demo_nodes + static_tf_nodes + [command_node, shutdown_handler, plotting_node, rviz_node])
+    return LaunchDescription(mpc_demo_nodes + static_tf_nodes + [command_node, shutdown_handler, plotting_node])

@@ -63,10 +63,6 @@ RUN git submodule update --init --recursive
 WORKDIR /ros_ws/src/crazyflie_mpc
 RUN pip install data
 
-# Special requirements for PyQt5
-RUN pip install --upgrade pip
-RUN pip install PyQt5==5.15.11 --config-settings --confirm-license=
-
 # Build packages with Colcon
 WORKDIR /ros_ws/
 RUN . /opt/ros/humble/setup.sh && \

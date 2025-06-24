@@ -253,7 +253,7 @@ class MPCDemo(Node):
         pos = np.array([transform.transform.translation.x, transform.transform.translation.y, transform.transform.translation.z])
         quat = np.array([transform.transform.rotation.x, transform.transform.rotation.y, transform.transform.rotation.z, transform.transform.rotation.w])
         
-        if self.initial_pos is None and np.abs(pos).sum() == 0:
+        if self.initial_pos is None and np.abs(pos).sum() == 0 and False:
             self.get_logger().warn(f'Ignoring initial position {pos}')
             return
 

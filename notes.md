@@ -2,12 +2,21 @@ https://docs.ros.org/en/humble/index.html
 https://en.cppreference.com/w/
 
 TODO:
-- Find double sided tape for cf90
-- Replace propellers
 - Plot desired vs. actual trajectories, plot deviation from prescribed
 - Prompt to rerun at end of script
 - Fix casadi warnings... downgrade package?
 - Look at crazyflie_online (crazyflie_ros package)
+- Figure out `rclpy.shutdown()` and reincorporate it to `command` and `follow_waypoint` nodes (try / except / finally)
+
+    ```
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
+    ```
 
 FUTURE PLANS:
 - Multi-step trajectories

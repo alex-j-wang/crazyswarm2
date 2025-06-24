@@ -16,13 +16,9 @@
   <depend>std_msgs</depend>
   <depend>sensor_msgs</depend>
   <depend>geometry_msgs</depend>
-  <depend>visualization_msgs</depend>
-  <depend>rcl_interfaces</depend>
 
   <exec_depend>tf_transformations</exec_depend>
-  <exec_depend>rviz2</exec_depend>
   <exec_depend>python3-matplotlib</exec_depend>
-  <exec_depend>python3-pyqt5</exec_depend>
   <exec_depend>python3-numpy</exec_depend>
 
   <export>
