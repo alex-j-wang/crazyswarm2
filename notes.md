@@ -2,6 +2,8 @@ https://docs.ros.org/en/humble/index.html
 https://en.cppreference.com/w/
 
 TODO:
+- export LIBGL_ALWAYS_INDIRECT=1
+- Add `xhost +local:root` to README
 - Plot desired vs. actual trajectories, plot deviation from prescribed
 - Prompt to rerun at end of script
 - Fix casadi warnings... downgrade package?
@@ -56,7 +58,6 @@ look through ROS documentation, docs files
 builtin_interfaces/Duration duration
 ros2 run crazyflie reboot --uri radio://*/120/2M/E7E7E7E702
 ros2 run crazyflie reboot --uri radio://*/80/2M/E7E7E7E744
-ros2 run crazyflie reboot --uri radio://*/120/2M/E7E7E7E706
 ros2 run tf2_ros tf2_echo world_frame cf2
 
 VICON SETUP

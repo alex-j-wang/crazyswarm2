@@ -7,7 +7,6 @@ from geometry_msgs.msg import PoseStamped, TwistStamped
 from rcl_interfaces.msg import ParameterDescriptor, ParameterType
 
 import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
 from mpl_toolkits.mplot3d import Axes3D
 from threading import Lock
 
@@ -56,6 +55,9 @@ class Trajectory3DPlotter(Node):
         self.ax.set_xlabel('X (m)')
         self.ax.set_ylabel('Y (m)')
         self.ax.set_zlabel('Z (m)')
+        self.ax.set_xlim(-2, 2)
+        self.ax.set_ylim(-2, 2)
+        self.ax.set_zlim(0, 2)
 
         # Assign unique colors and line objects
         colormap = plt.get_cmap('tab10')
@@ -70,8 +72,7 @@ class Trajectory3DPlotter(Node):
             }
 
         self.ax.legend()
-        self.anim = FuncAnimation(self.fig, self.update_plot, interval=100)
-        plt.show()
+        self.create_timer(0.2, self.update_plot)
 
     def actual_callback(self, msg: PoseStamped, cfname: str):
         with self.data_lock:
@@ -83,7 +84,7 @@ class Trajectory3DPlotter(Node):
             pos = msg.twist.linear
             self.data[cfname]['goal'].append((pos.x, pos.y, pos.z))
 
-    def update_plot(self, _):
+    def update_plot(self):
         with self.data_lock:
             for name in self.cfnames:
                 # Plot actual path
@@ -100,13 +101,20 @@ class Trajectory3DPlotter(Node):
                     self.lines[name]['goal'].set_data(goal_np[:, 0], goal_np[:, 1])
                     self.lines[name]['goal'].set_3d_properties(goal_np[:, 2])
 
-            self.ax.relim()
-            self.ax.autoscale_view()
+            self.fig.canvas.draw()
+            self.fig.canvas.flush_events()
 
 def main(args=None):
     rclpy.init(args=args)
     node = Trajectory3DPlotter()
-    rclpy.spin(node)
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        node.destroy_node()
+        plt.savefig('trajectory_plot.svg')
     
 if __name__ == '__main__':
+    plt.ion()
     main()

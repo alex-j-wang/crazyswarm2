@@ -14,9 +14,12 @@ if [ "$1" == "--clean" ]; then
 fi
 
 docker run -it --privileged -d \
+  --env DISPLAY=$DISPLAY \
   --volume "${CURRENT_DIR}:${ROS_WS_PATH}:rw" \
   --volume /dev/bus/usb:/dev/bus/usb \
+  --volume /tmp/.X11-unix:/tmp/.X11-unix \
   --name "${DOCKER_REPOSITORY}" \
   --network host \
   --shm-size=1000mb \
+  --device /dev/dri \
   "${DOCKER_IMAGE}" bash

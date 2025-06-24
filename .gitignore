@@ -3,3 +3,7 @@ crazyswarm2_sim_webots/
 *.pyc
 *.o
 *~
+
+log*.csv
+params*.csv
+trajectory_plot.svg
