@@ -29,7 +29,9 @@ class Trajectory3DPlotter(Node):
         self.data = {
             name: {
                 'actual': [],
-                'goal': []
+                'goal': [],
+                'deviation_time': [],
+                'deviation': [],
             } for name in self.cfnames
         }
 
@@ -48,36 +50,60 @@ class Trajectory3DPlotter(Node):
                 10
             )
 
-        # Matplotlib setup
-        self.fig = plt.figure()
-        self.ax = self.fig.add_subplot(111, projection='3d')
-        self.ax.set_title('Crazyflie 3D Trajectories')
-        self.ax.set_xlabel('X (m)')
-        self.ax.set_ylabel('Y (m)')
-        self.ax.set_zlabel('Z (m)')
-        self.ax.set_xlim(-2, 2)
-        self.ax.set_ylim(-2, 2)
-        self.ax.set_zlim(0, 2)
 
-        # Assign unique colors and line objects
+        self.traj_fig = plt.figure(figsize=(10, 5))
+        
+        # --- 3D Trajectory Figure ---
+        self.traj_ax = self.traj_fig.add_subplot(121, projection='3d')
+        self.traj_ax.set_title('Crazyflie 3D Trajectories')
+        self.traj_ax.set_xlabel('X (m)')
+        self.traj_ax.set_ylabel('Y (m)')
+        self.traj_ax.set_zlabel('Z (m)')
+        self.traj_ax.set_xlim(-2, 2)
+        self.traj_ax.set_ylim(-2, 2)
+        self.traj_ax.set_zlim(0, 2)
+
         colormap = plt.get_cmap('tab10')
         self.lines = {}
         for i, name in enumerate(self.cfnames):
             color = colormap(i % 10)
-            actual_line, = self.ax.plot([], [], [], linestyle='-', label=f'{name} actual', color=color)
-            goal_line, = self.ax.plot([], [], [], linestyle=':', label=f'{name} goal', color=color)
+            actual_line, = self.traj_ax.plot([], [], [], linestyle='-', label=f'{name} actual', color=color)
+            goal_line, = self.traj_ax.plot([], [], [], linestyle=':', label=f'{name} goal', color=color)
             self.lines[name] = {
                 'actual': actual_line,
-                'goal': goal_line
+                'goal': goal_line,
+                'color': color,
             }
 
-        self.ax.legend()
+        self.traj_ax.legend()
+
+        # --- Deviation Figure ---
+        self.err_ax = self.traj_fig.add_subplot(122)
+        self.err_ax.set_title('Deviation from Goal vs Time')
+        self.err_ax.set_xlabel('Time (s)')
+        self.err_ax.set_ylabel('Deviation (m)')
+        self.err_ax.grid(True)
+
+        self.error_lines = {
+            name: self.err_ax.plot([], [], label=name, color=self.lines[name]['color'])[0]
+            for name in self.cfnames
+        }
+
+        self.err_ax.legend()
+
         self.create_timer(0.2, self.update_plot)
 
     def actual_callback(self, msg: PoseStamped, cfname: str):
         with self.data_lock:
             pos = msg.pose.position
             self.data[cfname]['actual'].append((pos.x, pos.y, pos.z))
+
+            if self.data[cfname]['goal']:
+                t = msg.header.stamp.sec + msg.header.stamp.nanosec / 1e9
+                gx, gy, gz = self.data[cfname]['goal'][-1]
+                deviation = np.linalg.norm(np.array([pos.x - gx, pos.y - gy, pos.z - gz]))
+                self.data[cfname]['deviation_time'].append(t)
+                self.data[cfname]['deviation'].append(deviation)
 
     def goal_callback(self, msg: TwistStamped, cfname: str):
         with self.data_lock:
@@ -101,11 +127,20 @@ class Trajectory3DPlotter(Node):
                     self.lines[name]['goal'].set_data(goal_np[:, 0], goal_np[:, 1])
                     self.lines[name]['goal'].set_3d_properties(goal_np[:, 2])
 
-            self.fig.canvas.draw()
-            self.fig.canvas.flush_events()
+                # Update error plot
+                if self.data[name]['deviation']:
+                    t = np.array(self.data[name]['deviation_time'])
+                    d = np.array(self.data[name]['deviation'])
+                    self.error_lines[name].set_data(t, d)
+
+            self.err_ax.relim()
+            self.err_ax.autoscale_view()
+            self.traj_fig.canvas.draw()
+            self.traj_fig.canvas.flush_events()
 
 def main(args=None):
     rclpy.init(args=args)
+    plt.ion()
     node = Trajectory3DPlotter()
     try:
         rclpy.spin(node)
@@ -113,8 +148,8 @@ def main(args=None):
         pass
     finally:
         node.destroy_node()
-        plt.savefig('trajectory_plot.svg')
-    
+        plt.savefig("trajectory_summary.svg")
+        plt.ioff()
+
 if __name__ == '__main__':
-    plt.ion()
     main()

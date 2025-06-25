@@ -68,6 +68,4 @@ WORKDIR /ros_ws/
 RUN . /opt/ros/humble/setup.sh && \
     colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Debug
 RUN echo "source /opt/ros/humble/setup.sh" >> ~/.bashrc && \
-    echo "source /ros_ws/install/local_setup.bash" >> ~/.bashrc && \
-    echo 'export PYTHONPATH="/ros_ws/src/crazyflie_mpc/data:$PYTHONPATH"' >> ~/.bashrc && \
-    echo "export RCUTILS_COLORIZED_OUTPUT=1" >> ~/.bashrc
+    echo "source /ros_ws/install/local_setup.bash" >> ~/.bashrc

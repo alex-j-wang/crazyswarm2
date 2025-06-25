@@ -2,9 +2,6 @@ https://docs.ros.org/en/humble/index.html
 https://en.cppreference.com/w/
 
 TODO:
-- export LIBGL_ALWAYS_INDIRECT=1
-- Add `xhost +local:root` to README
-- Plot desired vs. actual trajectories, plot deviation from prescribed
 - Prompt to rerun at end of script
 - Fix casadi warnings... downgrade package?
 - Look at crazyflie_online (crazyflie_ros package)

@@ -1,9 +1,9 @@
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.conditions import IfCondition
+from launch.actions import DeclareLaunchArgument
+from launch.conditions import LaunchConfigurationEquals
 from launch.logging import get_logger
-from launch.substitutions import PythonExpression
 from launch_ros.actions import Node
 import yaml
 
@@ -91,6 +91,8 @@ def generate_launch_description():
         )
     )
 
+    plotting_launch_arg = DeclareLaunchArgument('plotting', default_value=str(mpc['constants']['plotting']))
+
     plotting_node = Node(
         package='crazyflie_mpc',
         executable='trajectory_plotter.py',
@@ -101,8 +103,8 @@ def generate_launch_description():
                 'cfnames': cfnames,
             },
         ],
-        condition=IfCondition(PythonExpression(str(mpc['constants']['plotting']))),
+        condition=LaunchConfigurationEquals('plotting', 'True'),
         output='screen'
     )
 
-    return LaunchDescription(mpc_demo_nodes + static_tf_nodes + [command_node, shutdown_handler, plotting_node])
+    return LaunchDescription(mpc_demo_nodes + static_tf_nodes + [command_node, shutdown_handler, plotting_launch_arg, plotting_node])
