@@ -25,6 +25,7 @@ class MPCDemo(Node):
         
         self.world_frame = self.get_parameter('world_frame').value
         self.frame = self.get_parameter('frame').value
+        self.sim = self.get_parameter('sim').value
         
         self.controller_type = self.get_parameter('controller_type').value
         self.control_frequency = self.get_parameter('control_frequency').value
@@ -200,29 +201,29 @@ class MPCDemo(Node):
         match msg.data:
             case 1:
                 self.get_logger().info('Takeoff requested!')
+                setup_speed = self.get_parameter('setup_speed').value
                 traj_start = self.trajectory_points[0]
                 elevated_pos = np.array([self.initial_pos[0], self.initial_pos[1], traj_start[2]])
-                self.traj = self.generate_traj(np.vstack([self.initial_pos, elevated_pos, traj_start]))
+                self.traj = self.generate_traj(np.vstack([self.initial_pos, elevated_pos, traj_start]), setup_speed)
                 self.controller = GeometriControl()
             case 2:
                 self.get_logger().info('Trajectory requested!')
-                self.traj = self.generate_traj(self.trajectory_points)
+                desired_speed = self.get_parameter('desired_speed').value
+                self.traj = self.generate_traj(self.trajectory_points, desired_speed)
                 self.controller = self.create_controller()
             case 3:
                 self.get_logger().info('Landing requested!')
+                setup_speed = self.get_parameter('setup_speed').value
                 traj_end = self.trajectory_points[-1]
                 xf = self.get_parameter('x_final').value
                 yf = self.get_parameter('y_final').value
                 zf = self.get_parameter('z_final').value
                 elevated_pos = np.array([xf, yf, traj_end[2]])
                 final_pos = np.array([xf, yf, zf])
-                self.traj = self.generate_traj(np.vstack([traj_end, elevated_pos, final_pos]))
+                self.traj = self.generate_traj(np.vstack([traj_end, elevated_pos, final_pos]), setup_speed)
                 self.controller = GeometriControl()
             case 4:
                 self.get_logger().info('Shutdown requested!')
-                msg = Twist()
-                self.cmd_pub.publish(msg)
-                rclpy.shutdown()
             case _:
                 self.get_logger().warn(f"State request '{msg.data}' invalid")
                 return
@@ -231,14 +232,10 @@ class MPCDemo(Node):
         self.m_state = msg.data
         self.ready_sent = False
             
-    def generate_traj(self, points):
+    def generate_traj(self, points, desired_speed):
         """
         Generates a trajectory object from waypoints
         """
-        if self.m_state == 2:
-            desired_speed = self.get_parameter('desired_speed').value 
-        else:
-            desired_speed = 0.2
         return wt.WaypointTraj(points, desired_speed)
         
     def timer_callback(self):
@@ -258,16 +255,14 @@ class MPCDemo(Node):
         pos = np.array([transform.transform.translation.x, transform.transform.translation.y, transform.transform.translation.z])
         quat = np.array([transform.transform.rotation.x, transform.transform.rotation.y, transform.transform.rotation.z, transform.transform.rotation.w])
         
-        if self.initial_pos is None and np.abs(pos).sum() == 0:
-            self.get_logger().warn(f'Ignoring initial position {pos}')
+        if self.initial_pos is None and np.abs(pos).sum() == 0 and not self.sim:
+            self.get_logger().warn(f'Ignoring initial position {pos}. Is the server active?')
             return
 
         # Check for initial position reading
         if self.initial_pos is None:
             self.get_logger().info(f'Initial position {pos}')
             self.initial_pos = self.prev_pos = pos
-            self.ready_sent = True
-            self.ready_pub.publish(String(data=self.frame))
             
         v = (pos - self.prev_pos) / dt
         v_est_sum = np.abs(v).sum()
@@ -275,11 +270,17 @@ class MPCDemo(Node):
             v = self.prev_vel
         v = np.clip(v, -0.7, 0.7)
         
-        if self.m_state == 0:
+        if self.m_state in (0, 4):
             msg = Twist()
             self.cmd_pub.publish(msg)
+            if not self.ready_sent:
+                self.ready_sent = True
+                self.ready_pub.publish(String(data=self.frame))
+            if self.m_state > 3:
+                self.destroy_node()
+                exit(0)
             return
-                    
+        
         # if self.trajectory_type == 'tracking':
         #     interp_time = [1, 4]
         #     points = interp1d(interp_time, np.vstack([self.curr_pos, self.target_pos]), axis=0)([1, 2, 3, 4]) # Trajectory to target
@@ -312,7 +313,8 @@ class MPCDemo(Node):
         msg.linear.y = np.clip(np.degrees(roll), -10, 10) # Roll
         msg.linear.z = self.map_u1(thrust) # Thrust
         msg.angular.z = np.degrees(0) # Yawrate (TODO: 0 for now)
-        self.cmd_pub.publish(msg)
+        if not self.sim:
+            self.cmd_pub.publish(msg)
         
         # Log data for debugging and visualization
         self.log_ros_info(roll, pitch, yaw, r_ddot_des, v, msg, flat, pos, quat, thrust)
@@ -332,12 +334,10 @@ class MPCDemo(Node):
         """
         Map control thrust to cmd_vel thrust; u1 should range from -0.2 to 0.2
         """
-        trim_cmd = 53000 # Was 43000
+        trim_cmd = 43000 # Was 43000
         min_cmd = 20000 # Was 10000
         u1_trim = 0.327
         c = min_cmd
-        if self.m_state == 3:
-            c -= 10000
         m = (trim_cmd - min_cmd) / u1_trim
         mapped_u1 = min(u1 * m + c, 60000.)
         return mapped_u1
@@ -419,7 +419,6 @@ def main(args=None):
     rclpy.init(args=args)
     mpc_demo = MPCDemo()
     rclpy.spin(mpc_demo)
-    mpc_demo.destroy_node()
     
 if __name__ == '__main__':
     main()

@@ -2,12 +2,20 @@ https://docs.ros.org/en/humble/index.html
 https://en.cppreference.com/w/
 
 TODO:
-- Find double sided tape for cf90
-- Replace propellers
-- Plot desired vs. actual trajectories, plot deviation from prescribed
 - Prompt to rerun at end of script
-- Fix casadi warnings... downgrade package?
 - Look at crazyflie_online (crazyflie_ros package)
+- Figure out `rclpy.shutdown()` and reincorporate it to `command` and `follow_waypoint` nodes (try / except / finally)
+
+    ```
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
+    ```
+- Figure out how to add `apt-get update` and `apt-get install -y python3-pyqt5` to Dockerfile
 
 FUTURE PLANS:
 - Multi-step trajectories
@@ -26,6 +34,7 @@ FUTURE PLANS:
 - Set up SIM backend (`cmd_vel_legacy` not yet implemented)
 - ~~Transition to crazyswarm2 API~~ (using `cmd_vel_legacy` switches to low-level control)
 - Very long term: ideally we get drones with cameras that can see each other, bypassing the need for external motion tracking
+- Consistency with declaring parameters, get_parameter_value()
 
 USEFUL COMMANDS:
 - `ros2 topic list`
@@ -46,7 +55,6 @@ look through ROS documentation, docs files
 builtin_interfaces/Duration duration
 ros2 run crazyflie reboot --uri radio://*/120/2M/E7E7E7E702
 ros2 run crazyflie reboot --uri radio://*/80/2M/E7E7E7E744
-ros2 run crazyflie reboot --uri radio://*/120/2M/E7E7E7E706
 ros2 run tf2_ros tf2_echo world_frame cf2
 
 VICON SETUP

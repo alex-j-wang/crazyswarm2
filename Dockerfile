@@ -27,7 +27,7 @@ RUN curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o 
 RUN apt-get update -q && \
     apt-get install -yq --no-install-recommends \
     usbutils \
-    wget \ 
+    wget \
     software-properties-common \ 
     python3-pip \
     python-is-python3 \
@@ -63,14 +63,9 @@ RUN git submodule update --init --recursive
 WORKDIR /ros_ws/src/crazyflie_mpc
 RUN pip install data
 
-# Run install script and pass in the architecture
-# RUN ARCH=$(dpkg --print-architecture) && echo "Building driver with $ARCH" && /ros_ws/src/install_spot_ros2.sh --$ARCH
-
 # Build packages with Colcon
 WORKDIR /ros_ws/
 RUN . /opt/ros/humble/setup.sh && \
     colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Debug
 RUN echo "source /opt/ros/humble/setup.sh" >> ~/.bashrc && \
-    echo "source /ros_ws/install/local_setup.bash" >> ~/.bashrc && \
-    echo 'export PYTHONPATH="/ros_ws/src/crazyflie_mpc/data:$PYTHONPATH"' >> ~/.bashrc && \
-    echo "export RCUTILS_COLORIZED_OUTPUT=1" >> ~/.bashrc
+    echo "source /ros_ws/install/local_setup.bash" >> ~/.bashrc

@@ -11,6 +11,7 @@ trajectories:
     p1: [0.8, 0.0, 1.0]
     p2: [-0.8, 0.0, 1.0]
     p3: [-1.0, 0.0, 1.1]
+
 constants:
   controller_type: "mpc" # Options: geometric, mpc, hybrid, gp
   control_frequency: 50.0 # Hz
@@ -30,4 +31,8 @@ constants:
   geo_yaw_kp: 50.0
   
   # Waypoint parameters
+  setup_speed: 0.2 # m/s
   desired_speed: 0.5 # m/s
+
+ # Enable plotting of intended vs. actual trajectories
+  plotting: true

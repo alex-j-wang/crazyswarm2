@@ -23,6 +23,7 @@ install(PROGRAMS
   crazyflie_mpc/waypoint_traj.py
   crazyflie_mpc/models.py
   crazyflie_mpc/command.py
+  crazyflie_mpc/trajectory_plotter.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

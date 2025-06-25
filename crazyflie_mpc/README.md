@@ -67,9 +67,15 @@ These can be performed in any directory once the packages are built.
 
 ### Controller Parameters
 
-Craztflies must be enabled in `/config/crazyflies.yaml` under the `crazyflie` package.
+Crazyflies must be enabled in `/config/crazyflies.yaml` under the `crazyflie` package.
 
 You can configure controller parameters in `/config/mpc.yaml`. Each active Crazyflie should have a trajectory specified here. Trajectory formats are demonstrated in `/config/example_trajectories.yaml`.
+
+To test `crazyflie_mpc` without hardware, launch with `sim:=True`. 
+
+### Plotting
+
+Plotting of actual and prescribed trajectories can be enabled through either `/config/mpc.yaml` or `plotting:=True` when launching. For the GUI to appear, you must run `xhost +local:root` outside the container.
 
 ## Topics
 

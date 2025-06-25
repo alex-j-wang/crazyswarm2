@@ -19,6 +19,12 @@ class CommandNode(Node):
 
     def next_phase(self):
         self.timer.cancel()
+
+        if self.state_request > 3:
+            self.get_logger().info('Shutting down')
+            self.destroy_node()
+            exit(0)
+
         self.state_request += 1
         for name in self.cfready:
             self.cfready[name] = False
@@ -26,10 +32,6 @@ class CommandNode(Node):
         msg.data = self.state_request
         self.state_pub.publish(msg)
         self.get_logger().info(f'Phase {self.state_request} requested')
-
-        if self.state_request > 3:
-            self.get_logger().info('Shutting down')
-            rclpy.shutdown()
 
     def ready_callback(self, msg):
         if msg.data in self.cfready:
@@ -45,7 +47,6 @@ def main():
     rclpy.init()
     node = CommandNode()
     rclpy.spin(node)
-    node.destroy_node()
 
 if __name__ == '__main__':
     main()
