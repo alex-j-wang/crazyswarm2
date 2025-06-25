@@ -254,7 +254,7 @@ class MPCDemo(Node):
         quat = np.array([transform.transform.rotation.x, transform.transform.rotation.y, transform.transform.rotation.z, transform.transform.rotation.w])
         
         if self.initial_pos is None and np.abs(pos).sum() == 0:
-            self.get_logger().warn(f'Ignoring initial position {pos}')
+            self.get_logger().warn(f'Ignoring initial position {pos}. Is the server active?')
             return
 
         # Check for initial position reading

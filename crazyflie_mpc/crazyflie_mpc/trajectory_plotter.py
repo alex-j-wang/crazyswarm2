@@ -51,7 +51,8 @@ class Trajectory3DPlotter(Node):
             )
 
 
-        self.traj_fig = plt.figure(figsize=(10, 5))
+        self.traj_fig = plt.figure(figsize=(12, 5))
+        self.traj_fig.subplots_adjust(wspace=0.5)
         
         # --- 3D Trajectory Figure ---
         self.traj_ax = self.traj_fig.add_subplot(121, projection='3d')
