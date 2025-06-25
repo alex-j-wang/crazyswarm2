@@ -31,6 +31,7 @@ constants:
   geo_yaw_kp: 50.0
   
   # Waypoint parameters
+  setup_speed: 0.2 # m/s
   desired_speed: 0.5 # m/s
 
  # Enable plotting of intended vs. actual trajectories

@@ -201,9 +201,10 @@ class MPCDemo(Node):
         match msg.data:
             case 1:
                 self.get_logger().info('Takeoff requested!')
+                setup_speed = self.get_parameter('setup_speed').value
                 traj_start = self.trajectory_points[0]
                 elevated_pos = np.array([self.initial_pos[0], self.initial_pos[1], traj_start[2]])
-                self.traj = self.generate_traj(np.vstack([self.initial_pos, elevated_pos, traj_start]), 0.2)
+                self.traj = self.generate_traj(np.vstack([self.initial_pos, elevated_pos, traj_start]), setup_speed)
                 self.controller = GeometriControl()
             case 2:
                 self.get_logger().info('Trajectory requested!')
@@ -212,13 +213,14 @@ class MPCDemo(Node):
                 self.controller = self.create_controller()
             case 3:
                 self.get_logger().info('Landing requested!')
+                setup_speed = self.get_parameter('setup_speed').value
                 traj_end = self.trajectory_points[-1]
                 xf = self.get_parameter('x_final').value
                 yf = self.get_parameter('y_final').value
                 zf = self.get_parameter('z_final').value
                 elevated_pos = np.array([xf, yf, traj_end[2]])
                 final_pos = np.array([xf, yf, zf])
-                self.traj = self.generate_traj(np.vstack([traj_end, elevated_pos, final_pos]), 0.2)
+                self.traj = self.generate_traj(np.vstack([traj_end, elevated_pos, final_pos]), setup_speed)
                 self.controller = GeometriControl()
             case 4:
                 self.get_logger().info('Shutdown requested!')

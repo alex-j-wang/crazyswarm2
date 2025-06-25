@@ -1,17 +1,13 @@
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, RegisterEventHandler, Shutdown
 from launch.conditions import LaunchConfigurationEquals
+from launch.event_handlers import OnProcessExit
 from launch.logging import get_logger
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 import yaml
-
-from launch import LaunchDescription
-from launch.actions import RegisterEventHandler, Shutdown
-from launch.event_handlers import OnProcessExit
-from launch_ros.actions import Node
 
 def generate_launch_description():
     logger = get_logger('launch')
