@@ -4,6 +4,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.conditions import LaunchConfigurationEquals
 from launch.logging import get_logger
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 import yaml
 
@@ -53,6 +54,7 @@ def generate_launch_description():
                         'frame': key,
                         'x_final': value['initial_position'][0],
                         'y_final': value['initial_position'][1],
+                        'sim': LaunchConfiguration('sim'),
                     },
                     mpc['constants'],
                     mpc['trajectories'][key]
@@ -91,8 +93,6 @@ def generate_launch_description():
         )
     )
 
-    plotting_launch_arg = DeclareLaunchArgument('plotting', default_value=str(mpc['constants']['plotting']))
-
     plotting_node = Node(
         package='crazyflie_mpc',
         executable='trajectory_plotter.py',
@@ -107,4 +107,14 @@ def generate_launch_description():
         output='screen'
     )
 
-    return LaunchDescription(mpc_demo_nodes + static_tf_nodes + [command_node, shutdown_handler, plotting_launch_arg, plotting_node])
+    return LaunchDescription(
+        [
+            DeclareLaunchArgument('sim', default_value='False'),
+            DeclareLaunchArgument('plotting', default_value=str(mpc['constants']['plotting'])),
+            command_node,
+            shutdown_handler,
+            plotting_node,
+            *mpc_demo_nodes,
+            *static_tf_nodes
+        ]
+    )

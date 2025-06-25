@@ -27,7 +27,7 @@ RUN curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o 
 RUN apt-get update -q && \
     apt-get install -yq --no-install-recommends \
     usbutils \
-    wget \ 
+    wget \
     software-properties-common \ 
     python3-pip \
     python-is-python3 \

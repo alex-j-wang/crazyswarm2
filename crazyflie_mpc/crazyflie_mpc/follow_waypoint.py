@@ -25,6 +25,7 @@ class MPCDemo(Node):
         
         self.world_frame = self.get_parameter('world_frame').value
         self.frame = self.get_parameter('frame').value
+        self.sim = self.get_parameter('sim').value
         
         self.controller_type = self.get_parameter('controller_type').value
         self.control_frequency = self.get_parameter('control_frequency').value
@@ -253,7 +254,7 @@ class MPCDemo(Node):
         pos = np.array([transform.transform.translation.x, transform.transform.translation.y, transform.transform.translation.z])
         quat = np.array([transform.transform.rotation.x, transform.transform.rotation.y, transform.transform.rotation.z, transform.transform.rotation.w])
         
-        if self.initial_pos is None and np.abs(pos).sum() == 0:
+        if self.initial_pos is None and np.abs(pos).sum() == 0 and not self.sim:
             self.get_logger().warn(f'Ignoring initial position {pos}. Is the server active?')
             return
 
@@ -311,7 +312,8 @@ class MPCDemo(Node):
         msg.linear.y = np.clip(np.degrees(roll), -10, 10) # Roll
         msg.linear.z = self.map_u1(thrust) # Thrust
         msg.angular.z = np.degrees(0) # Yawrate (TODO: 0 for now)
-        self.cmd_pub.publish(msg)
+        if not self.sim:
+            self.cmd_pub.publish(msg)
         
         # Log data for debugging and visualization
         self.log_ros_info(roll, pitch, yaw, r_ddot_des, v, msg, flat, pos, quat, thrust)

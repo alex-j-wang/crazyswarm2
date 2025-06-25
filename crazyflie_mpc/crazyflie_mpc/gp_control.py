@@ -74,8 +74,8 @@ class GPControl(object):
         self.att_kd_mat         = np.diag(np.array([self.geo_rollpitch_kd, self.geo_rollpitch_kd, self.geo_yaw_kd]))
 
         dae             = {'x': x, 'p': u, 'ode': f(x, u)}
-        options         = dict(tf=sampling_rate, simplify=True, number_of_finite_elements=4)
-        intg            = integrator('intg', 'rk', dae, options)
+        options         = dict(simplify=True, number_of_finite_elements=4)
+        intg            = integrator('intg', 'rk', dae, 0, sampling_rate, options)
         res             = intg(x0=x, p=u)
         x_next          = res['xf']
         self.Dynamics   = Function('F', [x, u], [x_next])

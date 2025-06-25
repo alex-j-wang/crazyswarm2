@@ -3,7 +3,6 @@ https://en.cppreference.com/w/
 
 TODO:
 - Prompt to rerun at end of script
-- Fix casadi warnings... downgrade package?
 - Look at crazyflie_online (crazyflie_ros package)
 - Figure out `rclpy.shutdown()` and reincorporate it to `command` and `follow_waypoint` nodes (try / except / finally)
 
@@ -16,6 +15,7 @@ TODO:
         node.destroy_node()
         rclpy.shutdown()
     ```
+- Figure out how to add `apt-get update` and `apt-get install -y python3-pyqt5` to Dockerfile
 
 FUTURE PLANS:
 - Multi-step trajectories
