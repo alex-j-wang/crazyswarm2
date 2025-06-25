@@ -42,7 +42,6 @@ class MPCDemo(Node):
         # self.curr_pos = np.zeros(3)
         # self.target_pos = np.zeros(3)
         # self.curr_quat = np.zeros(4)
-        self.reduction = 0 # Used in map_u1, TODO: remove
         
         # Subscribers and publishers
         self.est_vel_pub = self.create_publisher(TwistStamped, 'est_vel', 1) # Estimated velocity
@@ -333,15 +332,10 @@ class MPCDemo(Node):
         """
         Map control thrust to cmd_vel thrust; u1 should range from -0.2 to 0.2
         """
-        trim_cmd = 53000 # Was 43000
+        trim_cmd = 43000 # Was 43000
         min_cmd = 20000 # Was 10000
         u1_trim = 0.327
         c = min_cmd
-        # TODO: remove
-        if self.m_state == 3:
-            if self.reduction < 10000:
-                self.reduction += 30
-            c -= self.reduction
         m = (trim_cmd - min_cmd) / u1_trim
         mapped_u1 = min(u1 * m + c, 60000.)
         return mapped_u1
