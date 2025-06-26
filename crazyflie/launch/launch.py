@@ -2,11 +2,13 @@ import os
 import yaml
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, TimerAction, LogInfo, OpaqueFunction
 from launch_ros.actions import Node
 from launch.conditions import LaunchConfigurationEquals
 from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration, PythonExpression
+
+REBOOT_DELAY = 1
 
 def parse_yaml(context):
     # Load the crazyflies YAML file
@@ -42,53 +44,91 @@ def parse_yaml(context):
 
     motion_capture_params = motion_capture_content['/motion_capture_tracking']['ros__parameters']
     motion_capture_params['rigid_bodies'] = dict()
+    reboot_actions = []
+    offset = 0.0
+
     for key, value in crazyflies['robots'].items():
         type = crazyflies['robot_types'][value['type']]
         if value['enabled'] and type['motion_capture']['enabled']:
-            motion_capture_params['rigid_bodies'][key] =  {
-                    'initial_position': value['initial_position'],
-                    'marker': type['motion_capture']['marker'],
-                    'dynamics': type['motion_capture']['dynamics'],
-                }
+            motion_capture_params['rigid_bodies'][key] = {
+                'initial_position': value['initial_position'],
+                'marker': type['motion_capture']['marker'],
+                'dynamics': type['motion_capture']['dynamics'],
+            }
+            reboot_actions.append(
+                TimerAction(
+                    period=offset,
+                    actions=[
+                        LogInfo(msg=f"[Reboot] Sending reboot command to {key} ({value['uri']})"),
+                        ExecuteProcess(
+                            cmd=[
+                                'ros2', 'run', 'crazyflie', 'reboot',
+                                '--uri', value['uri']
+                            ],
+                            output='screen',
+                        )
+                    ],
+                    condition=IfCondition(LaunchConfiguration('reboot')),
+                )
+            )
+            offset += REBOOT_DELAY
 
-    # copy relevent settings to server params
+    # copy relevant settings to server params
     server_params[1]['poses_qos_deadline'] = motion_capture_params['topics']['poses']['qos']['deadline']
+    if LaunchConfiguration('reboot').perform(context) == 'False':
+        offset = 0.0
     
-    return [
+    return reboot_actions + [
         Node(
             package='motion_capture_tracking',
             executable='motion_capture_tracking_node',
             condition=IfCondition(PythonExpression(["'", LaunchConfiguration('backend'), "' != 'sim' and '", LaunchConfiguration('mocap'), "' == 'True'"])),
             name='motion_capture_tracking',
             output='screen',
-            parameters= [motion_capture_params],
+            parameters=[motion_capture_params],
         ),
-        Node(
-            package='crazyflie',
-            executable='crazyflie_server.py',
-            condition=LaunchConfigurationEquals('backend','cflib'),
-            name='crazyflie_server',
-            output='screen',
-            parameters= server_params,
+        TimerAction(
+            period=offset,
+            actions=[
+                Node(
+                    package='crazyflie',
+                    executable='crazyflie_server.py',
+                    condition=LaunchConfigurationEquals('backend','cflib'),
+                    name='crazyflie_server',
+                    output='screen',
+                    parameters=server_params,
+                )
+            ]
         ),
-        Node(
-            package='crazyflie',
-            executable='crazyflie_server',
-            condition=LaunchConfigurationEquals('backend','cpp'),
-            name='crazyflie_server',
-            output='screen',
-            parameters= server_params,
-            prefix=PythonExpression(['"xterm -e gdb -ex run --args" if ', LaunchConfiguration('debug'), ' else ""']),
+        TimerAction(
+            period=offset,
+            actions=[
+                Node(
+                    package='crazyflie',
+                    executable='crazyflie_server',
+                    condition=LaunchConfigurationEquals('backend','cpp'),
+                    name='crazyflie_server',
+                    output='screen',
+                    parameters=server_params,
+                    prefix=PythonExpression(['"xterm -e gdb -ex run --args" if ', LaunchConfiguration('debug'), ' else ""']),
+                )
+            ]
         ),
-        Node(
-            package='crazyflie_sim',
-            executable='crazyflie_server',
-            condition=LaunchConfigurationEquals('backend','sim'),
-            name='crazyflie_server',
-            output='screen',
-            emulate_tty=True,
-            parameters= server_params,
-        )]
+        TimerAction(
+            period=offset,
+            actions=[
+                Node(
+                    package='crazyflie_sim',
+                    executable='crazyflie_server',
+                    condition=LaunchConfigurationEquals('backend','sim'),
+                    name='crazyflie_server',
+                    output='screen',
+                    emulate_tty=True,
+                    parameters=server_params,
+                )
+            ]
+        ),
+    ]
 
 def generate_launch_description():
     default_crazyflies_yaml_path = os.path.join(
@@ -125,6 +165,7 @@ def generate_launch_description():
         DeclareLaunchArgument('teleop', default_value='True'),
         DeclareLaunchArgument('mocap', default_value='True'),
         DeclareLaunchArgument('teleop_yaml_file', default_value=''),
+        DeclareLaunchArgument('reboot', default_value='False'),
         OpaqueFunction(function=parse_yaml),
         Node(
             condition=LaunchConfigurationEquals('teleop', 'True'),
@@ -141,7 +182,7 @@ def generate_launch_description():
                 # ('cmd_full_state', 'cf6/cmd_full_state'),
                 # ('notify_setpoints_stop', 'cf6/notify_setpoints_stop'),
             ],
-            parameters= [PythonExpression(["'" + telop_yaml_path +"' if '", LaunchConfiguration('teleop_yaml_file'), "' == '' else '", LaunchConfiguration('teleop_yaml_file'), "'"])],
+            parameters=[PythonExpression(["'" + telop_yaml_path +"' if '", LaunchConfiguration('teleop_yaml_file'), "' == '' else '", LaunchConfiguration('teleop_yaml_file'), "'"])],
         ),
         Node(
             condition=LaunchConfigurationEquals('teleop', 'True'),

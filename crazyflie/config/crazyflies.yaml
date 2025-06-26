@@ -289,7 +289,7 @@ robots:
 robot_types:
   cf21:
     motion_capture:
-      enabled: false
+      enabled: true
       marker: default
       dynamics: default
     big_quad: false

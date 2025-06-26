@@ -59,7 +59,7 @@ Installation should be complete.
 To run the MPC controller, use:
 
 ```bash
-ros2 launch crazyflie launch.py
+ros2 launch crazyflie launch.py gui:=False teleop:=False reboot:=True
 ros2 launch crazyflie_mpc launch.py
 ```
 

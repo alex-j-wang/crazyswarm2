@@ -34,6 +34,7 @@ RUN apt-get update -q && \
     python3-argcomplete \
     python3-colcon-common-extensions \
     python3-colcon-mixin \
+    python3-pyqt5 \
     python3-rosdep \
     libpython3-dev \
     ros-humble-rclpy \

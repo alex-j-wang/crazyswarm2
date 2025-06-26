@@ -2,10 +2,8 @@ https://docs.ros.org/en/humble/index.html
 https://en.cppreference.com/w/
 
 TODO:
-- Prompt to rerun at end of script
 - Look at crazyflie_online (crazyflie_ros package)
 - Figure out `rclpy.shutdown()` and reincorporate it to `command` and `follow_waypoint` nodes (try / except / finally)
-
     ```
     try:
         rclpy.spin(node)
@@ -15,7 +13,6 @@ TODO:
         node.destroy_node()
         rclpy.shutdown()
     ```
-- Figure out how to add `apt-get update` and `apt-get install -y python3-pyqt5` to Dockerfile
 
 FUTURE PLANS:
 - Multi-step trajectories
@@ -49,12 +46,11 @@ CLEANUP:
 - Refactoring (remove unnecessary variables/functions)
 - Remove unnecessary things like `self.world_frame = self.get_parameter('world_frame').get_parameter_value().string_value` (only really important if used more than once)
 - Purpose of `cmd_vel_stamped`? Is this the same as `cmd_vel_legacy`?
+- Code formatter
 
 MISCELLANEOUS / UNTESTED:
 look through ROS documentation, docs files
 builtin_interfaces/Duration duration
-ros2 run crazyflie reboot --uri radio://*/120/2M/E7E7E7E702
-ros2 run crazyflie reboot --uri radio://*/80/2M/E7E7E7E744
 ros2 run tf2_ros tf2_echo world_frame cf2
 
 VICON SETUP
