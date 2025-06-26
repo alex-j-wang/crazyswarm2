@@ -15,6 +15,7 @@ from std_msgs.msg import String, Int32
 import waypoint_traj as wt
 from mpc_control import MPControl
 from hybrid_control import HybridControl
+from knode_control import KNODEControl
 from geometric_control import GeometriControl
 from gp_control import GPControl
 from scipy.interpolate import interp1d
@@ -80,6 +81,8 @@ class MPCDemo(Node):
                 return HybridControl(self.control_frequency)
             case 'gp':
                 return GPControl(self.control_frequency)
+            case 'knode':
+                return KNODEControl(self.control_frequency)
             case _:
                 return GeometriControl()
                 

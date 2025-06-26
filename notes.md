@@ -13,13 +13,14 @@ TODO:
         node.destroy_node()
         rclpy.shutdown()
     ```
+- Fix output when node killed while plotting
 
 FUTURE PLANS:
+- Refactor reboot command into a server callback
 - Multi-step trajectories
 - Give each trajectory step an optional duration field; speed defaults to the maximum velocity parameter
 - Collision detection and avoidance for trajectories?
 - `waypoint_traj` deal with repeat points (may be fixed by adding durations)
-- Better clock alignment for main trajectory?
 - Use common config file(s) / take config params from `crazyflies.yaml`
 - Understand all magic numbers and add to config (including model filenames)
 - Check Docker build log, see if anything in `requirements.txt` is unnecessary
@@ -31,7 +32,6 @@ FUTURE PLANS:
 - Set up SIM backend (`cmd_vel_legacy` not yet implemented)
 - ~~Transition to crazyswarm2 API~~ (using `cmd_vel_legacy` switches to low-level control)
 - Very long term: ideally we get drones with cameras that can see each other, bypassing the need for external motion tracking
-- Consistency with declaring parameters, get_parameter_value()
 
 USEFUL COMMANDS:
 - `ros2 topic list`
@@ -40,6 +40,7 @@ USEFUL COMMANDS:
 - `ros2 run crazyflie_examples nice_hover`
 
 CLEANUP:
+- Consistency with declaring parameters, get_parameter_value()
 - Remove unused variables
 - Consistent spacing, remove unnecessary whitespace
 - Get rid of try / except blocks
