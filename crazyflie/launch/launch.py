@@ -8,7 +8,7 @@ from launch.conditions import LaunchConfigurationEquals
 from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration, PythonExpression
 
-REBOOT_DELAY = 1
+REBOOT_DELAY = 0.5
 
 def parse_yaml(context):
     # Load the crazyflies YAML file
@@ -55,11 +55,12 @@ def parse_yaml(context):
                 'marker': type['motion_capture']['marker'],
                 'dynamics': type['motion_capture']['dynamics'],
             }
+        if value['enabled']:
             reboot_actions.append(
                 TimerAction(
                     period=offset,
                     actions=[
-                        LogInfo(msg=f"[Reboot] Sending reboot command to {key} ({value['uri']})"),
+                        LogInfo(msg=f"[REBOOT] Sending reboot command to {key} ({value['uri']})"),
                         ExecuteProcess(
                             cmd=[
                                 'ros2', 'run', 'crazyflie', 'reboot',
@@ -75,8 +76,14 @@ def parse_yaml(context):
 
     # copy relevant settings to server params
     server_params[1]['poses_qos_deadline'] = motion_capture_params['topics']['poses']['qos']['deadline']
-    if LaunchConfiguration('reboot').perform(context) == 'False':
-        offset = 0.0
+    reboot_actions.append(
+        TimerAction(
+            period=offset,
+            actions=[LogInfo(msg=f"[REBOOT] Waiting for reboots to complete")],
+            condition=IfCondition(LaunchConfiguration('reboot')),
+        )
+    )
+    offset = offset + 5.0 if LaunchConfiguration('reboot').perform(context) == 'True' else 0.0
     
     return reboot_actions + [
         Node(
