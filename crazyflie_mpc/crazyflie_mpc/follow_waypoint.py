@@ -60,6 +60,7 @@ class MPCDemo(Node):
         self.ready_pub = self.create_publisher(String, '/command/cf_ready', 1) # Phase completion
         
         self.m_state = 0 # 0 = IDLE, 1 = TAKEOFF, 2 = TRAJECTORY, 3 = LANDING, 4 = SHUTDOWN
+        self.aborted = False # Aborted due to high position
         self.ready_sent = False # Prevents duplicate sends
         
         self.trajectory_points = self.get_trajectory_points()
@@ -283,6 +284,20 @@ class MPCDemo(Node):
                 self.destroy_node()
                 exit(0)
             return
+
+        # Abort if above threshold
+        if pos[2] >= self.get_parameter('z_max').value and not self.aborted:
+            self.get_logger().fatal(f'Position {pos.round(5)} above threshold, aborting')
+            self.aborted = True
+
+        if self.aborted:
+            msg = Twist()
+            msg.linear.z = 30000. # TODO: land more gracefully
+            self.cmd_pub.publish(msg)
+            if pos[2] <= self.get_parameter('z_final').value:
+                self.get_logger().warn('Abort complete, shutting down')
+                self.m_state = 4
+            return
         
         # if self.trajectory_type == 'tracking':
         #     interp_time = [1, 4]
@@ -335,15 +350,20 @@ class MPCDemo(Node):
             
     def map_u1(self, u1):
         """
-        Map control thrust to cmd_vel thrust; u1 should range from -0.2 to 0.2
+        Map control thrust (N) to cmd_vel thrust (PWM)
         """
-        trim_cmd = 43000 # Was 43000
-        min_cmd = 20000 # Was 10000
-        u1_trim = 0.327
-        c = min_cmd
-        m = (trim_cmd - min_cmd) / u1_trim
-        mapped_u1 = min(u1 * m + c, 60000.)
-        return mapped_u1
+        min_cmd = 0
+        trim_cmd = 41000 # Hover thrust
+        trim_u1 = 0.03 * 9.81 # Hover u1
+        max_cmd = 60000. # Max thrust
+        max_u1 = max_cmd / trim_cmd * trim_u1 # Max u1 (N)
+        
+        if u1 <= trim_u1:
+            mapped_u1 = min_cmd + (trim_cmd - min_cmd) * u1 / trim_u1
+        else:
+            mapped_u1 = trim_cmd + (max_cmd - trim_cmd) * (u1 - trim_u1) / (max_u1 - trim_u1)
+        
+        return min(mapped_u1, max_cmd)
         
     def sanitize_trajectory_dic(self, trajectory_dic):
         """
