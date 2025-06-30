@@ -3,6 +3,7 @@
 import numpy as np
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import QoSProfile, DurabilityPolicy
 from tf2_ros import TransformListener, Buffer
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import TwistStamped
@@ -43,6 +44,7 @@ class MPCDemo(Node):
         # self.curr_pos = np.zeros(3)
         # self.target_pos = np.zeros(3)
         # self.curr_quat = np.zeros(4)
+        self.trim_cmd = self.get_parameter('hover').value
         
         # Subscribers and publishers
         self.est_vel_pub = self.create_publisher(TwistStamped, 'est_vel', 1) # Estimated velocity
@@ -56,8 +58,10 @@ class MPCDemo(Node):
         # self.target_sub = self.create_subscription(PoseStamped, '/vicon/crazy_target/pose', self.target_callback, 10) # TODO: set correctly
         # self.vicon_sub = self.create_subscription(PoseStamped, f'/vicon/{self.frame}/{self.frame}/pose', self.vicon_callback, 10) # TODO: set correctly
         
+        qos_transient = QoSProfile(depth=1)
+        qos_transient.durability = DurabilityPolicy.TRANSIENT_LOCAL
         self.state_sub = self.create_subscription(Int32, '/command/cmd_state', self.cmd_state_callback, 1) # Phase request
-        self.ready_pub = self.create_publisher(String, '/command/cf_ready', 1) # Phase completion
+        self.ready_pub = self.create_publisher(String, '/command/cf_ready', qos_transient) # Phase completion
         
         self.m_state = 0 # 0 = IDLE, 1 = TAKEOFF, 2 = TRAJECTORY, 3 = LANDING, 4 = SHUTDOWN
         self.aborted = False # Aborted due to high position
@@ -353,7 +357,7 @@ class MPCDemo(Node):
         Map control thrust (N) to cmd_vel thrust (PWM)
         """
         min_cmd = 0
-        trim_cmd = 41000 # Hover thrust
+        trim_cmd = self.trim_cmd # Hover thrust
         trim_u1 = 0.03 * 9.81 # Hover u1
         max_cmd = 60000. # Max thrust
         max_u1 = max_cmd / trim_cmd * trim_u1 # Max u1 (N)

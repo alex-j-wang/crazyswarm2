@@ -53,6 +53,7 @@ def generate_launch_description():
                         'sim': LaunchConfiguration('sim'),
                     },
                     mpc['constants'],
+                    mpc['variables'][key],
                     mpc['trajectories'][key]
                 ],
                 output='screen'

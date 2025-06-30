@@ -2,6 +2,7 @@
 
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import QoSProfile, DurabilityPolicy
 from std_msgs.msg import String, Int32
 from rcl_interfaces.msg import ParameterValue, ParameterType
 
@@ -13,8 +14,10 @@ class CommandNode(Node):
         self.cfready = {name: False for name in self.cfnames}
         self.state_request = 0
 
+        qos_transient = QoSProfile(depth=len(self.cfnames))
+        qos_transient.durability = DurabilityPolicy.TRANSIENT_LOCAL
         self.state_pub = self.create_publisher(Int32, 'cmd_state', 1)
-        self.ready_sub = self.create_subscription(String, 'cf_ready', self.ready_callback, len(self.cfnames))
+        self.ready_sub = self.create_subscription(String, 'cf_ready', self.ready_callback, qos_transient)
         self.timer = None
 
     def next_phase(self):
