@@ -2,7 +2,6 @@ https://docs.ros.org/en/humble/index.html
 https://en.cppreference.com/w/
 
 ## To Do
-- Look at crazyflie_online (crazyflie_ros package)
 - Figure out `rclpy.shutdown()` and reincorporate it to `command` and `follow_waypoint` nodes (try / except / finally)
     ```
     try:
@@ -14,9 +13,11 @@ https://en.cppreference.com/w/
         rclpy.shutdown()
     ```
 - Fix output when node killed while plotting
+- Rename data to models and make a data folder
+- Yaw PID
+- Update crazyflie_mpc CMakeLists.txt and package.xml? Can I avoid PYTHONPATH using CMakeLists.txt?
 
 ## Futue Plans
-- Refactor reboot command into a server callback
 - Multi-step trajectories
 - Give each trajectory step an optional duration field; speed defaults to the maximum velocity parameter
 - Collision detection and avoidance for trajectories?
@@ -25,7 +26,6 @@ https://en.cppreference.com/w/
 - Understand all magic numbers and add to config (including model filenames)
 - Check Docker build log, see if anything in `requirements.txt` is unnecessary
 - Set up zoxide
-- Update crazyflie_mpc CMakeLists.txt and package.xml?
 - Add server to launch file(s)?
 - Access MPC data package more elegantly? No need for NODE to be an entire subpackage.
 - Make a template MPC Python program, API for inputs and outputs
@@ -59,3 +59,17 @@ https://en.cppreference.com/w/
 - Object name
 - CTRL + ALT to select points
 - Create
+
+## Crazyflie Online
+- Will want longer trajectories
+- Need to run several nodes
+    - data_writer: reads Crazyflie data (position, velocity, u_euler) into a file
+    - train_online: reads data and saves new models
+    - follow_waypoint: ensures the model being used is up to date, feeds new data into knode_control
+- Can we combine data_writer and train_online? Should knode have a separate launch file?
+- One model updater per Crazyflie
+- Clear online models, copy base model to online; 3 seconds after state is changed to trajectory, start training
+- Clean up imports
+- Verbose mode: more training updates
+- Add history mode to plotting
+- Depending on processing speed, may need to slow down model updates or use more history

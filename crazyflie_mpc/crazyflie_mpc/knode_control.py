@@ -73,13 +73,13 @@ class KNODEControl(object):
         #x = MX.sym('x', self.num_states, 1)
         #u = MX.sym('u', self.num_inputs, 1)
         
-        ode_torch = torch.load(torch_path, map_location=torch.device('cpu'))['ode_train']
+        ode_torch = torch.load(torch_path, map_location=torch.device('cpu'), weights_only=False)['ode_train']
         param_ls = []
         for _, layer in ode_torch.func.state_dict().items():
             param_ls.append(layer.detach().cpu().numpy())
         
         ode_nn = vertcat(self.x, self.u)
-        # unrolling the nn to build a functioni
+        # unrolling the nn to build a function
         n_layers = len(ode_torch.func.nn_model)
         param_cnt = 0
         for i in range(n_layers):
@@ -94,13 +94,12 @@ class KNODEControl(object):
         f               = Function('f', [self.x, self.u], [ode_hybrid])
 
         dae = {'x': self.x, 'p': self.u, 'ode': f(self.x, self.u)}
-        options = dict(tf=self.sampling_rate, simplify=True, number_of_finite_elements=4)
-        intg = integrator('intg', 'rk', dae, options)
+        options = dict(simplify=True, number_of_finite_elements=4)
+        intg = integrator('intg', 'rk', dae, 0, self.sampling_rate, options)
         res = intg(x0=self.x, p=self.u)
         x_next = res['xf']
         self.Dynamics = Function('F', [self.x, self.u], [x_next])
         self.model_update_cnt += 1
-        return 1
 
 
     def update(self, t, state, flat_output):

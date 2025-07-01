@@ -59,6 +59,17 @@ def generate_launch_description():
                 output='screen'
             ))
 
+            # Online training node
+            if mpc['constants']['controller_type'] == 'knode':
+                mpc_demo_nodes.append(Node(
+                    package='crazyflie_mpc',
+                    executable='train_online.py',
+                    name='mpc_train_online',
+                    namespace=key,
+                    parameters=[{ 'frame': key }, mpc['constants']],
+                    output='screen'
+                ))
+
             # Static transform publisher
             static_tf_nodes.append(Node(
                 package='tf2_ros',

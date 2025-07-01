@@ -19,7 +19,7 @@ variables:
     hover: 39000
 
 constants:
-  controller_type: "mpc" # Options: geometric, mpc, hybrid, gp
+  controller_type: "mpc" # Options: geometric, mpc, hybrid, gp, knode
   control_frequency: 50.0 # Hz
   z_final: 0.02 # Height above ground at which power should be cut, m
   z_max: 2.0 # Maximum height above ground, m
@@ -41,5 +41,10 @@ constants:
   setup_speed: 0.2 # m/s
   desired_speed: 0.5 # m/s
 
- # Enable plotting of intended vs. actual trajectories
+  # Enable plotting of intended vs. actual trajectories
   plotting: true
+
+  # Online learning parameters
+  data_frequency: 50.0 # data point frequency, Hz
+  model_period: 2.0 # seconds between model updates
+  noise: 0.000 # noise level for training data

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 import numpy as np
 import rclpy
 from rclpy.node import Node
@@ -62,6 +63,8 @@ class MPCDemo(Node):
         qos_transient.durability = DurabilityPolicy.TRANSIENT_LOCAL
         self.state_sub = self.create_subscription(Int32, '/command/cmd_state', self.cmd_state_callback, 1) # Phase request
         self.ready_pub = self.create_publisher(String, '/command/cf_ready', qos_transient) # Phase completion
+        if self.controller_type == 'knode':
+            self.model_sub = self.create_subscription(Int32, 'model', self.model_callback, 1) # Model update notification
         
         self.m_state = 0 # 0 = IDLE, 1 = TAKEOFF, 2 = TRAJECTORY, 3 = LANDING, 4 = SHUTDOWN
         self.aborted = False # Aborted due to high position
@@ -204,7 +207,7 @@ class MPCDemo(Node):
         Callback function for state changes
         """
         if msg.data == self.m_state:
-            self.get_logger.warn('Already in state {msg.data}')
+            self.get_logger().warn('Already in state {msg.data}')
 
         match msg.data:
             case 1:
@@ -239,6 +242,16 @@ class MPCDemo(Node):
         self.t0 = self.get_clock().now().nanoseconds / 1e9
         self.m_state = msg.data
         self.ready_sent = False
+
+    def model_callback(self, msg: Int32):
+        """
+        Callback function for online model updates
+        """
+        if self.m_state == 2:
+            dirname = os.path.join('/', 'ros_ws', 'src', 'crazyflie_mpc', 'data', 'knode_models', 'online')
+            target_path = os.path.join(dirname, f'{self.frame}_{msg.data}.pth')
+            self.controller.update_model(target_path)
+            self.get_logger().info(f'Updated knode controller using {self.frame}_{msg.data}.pth')
             
     def generate_traj(self, points, desired_speed):
         """
