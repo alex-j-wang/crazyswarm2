@@ -82,8 +82,8 @@ class OnlineLearningNode(Node):
         """
         Low-pass Butterworth filter for velocity data
         """
-        fs = 1000  # sampling frequency
-        fc = 10  # cut-off frequency
+        fs = self.data_frequency # sampling frequency
+        fc = 10 # cut-off frequency
         w = fc / (fs / 2)
         b, a = signal.butter(5, w, 'low')
         bs, _ = vel_data.shape

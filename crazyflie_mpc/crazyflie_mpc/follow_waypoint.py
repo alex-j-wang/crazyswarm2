@@ -13,6 +13,7 @@ from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import Vector3
 from sensor_msgs.msg import Imu
 from std_msgs.msg import String, Int32
+import threading
 
 import waypoint_traj as wt
 from mpc_control import MPControl
@@ -74,6 +75,7 @@ class MPCDemo(Node):
         self.trajectory_points = self.get_trajectory_points()
         self.traj = None # Set by state updates
         self.controller = None # Set by state updates
+        self.controller_lock = threading.Lock()
         self.yaw_pd = YawPD()
         
         self.t0 = self.get_clock().now().nanoseconds / 1e9
@@ -250,10 +252,11 @@ class MPCDemo(Node):
         Callback function for online model updates
         """
         if self.m_state == 2:
-            dirname = os.path.join('/', 'ros_ws', 'src', 'crazyflie_mpc', 'data', 'knode_models', 'online')
-            target_path = os.path.join(dirname, f'{self.frame}_{msg.data}.pth')
-            self.controller.update_model(target_path)
-            self.get_logger().info(f'Updated knode controller using {self.frame}_{msg.data}.pth')
+            with self.controller_lock:
+                dirname = os.path.join('/', 'ros_ws', 'src', 'crazyflie_mpc', 'data', 'knode_models', 'online')
+                target_path = os.path.join(dirname, f'{self.frame}_{msg.data}.pth')
+                self.controller.update_model(target_path)
+                self.get_logger().info(f'Updated knode controller using {self.frame}_{msg.data}.pth')
             
     def generate_traj(self, points, desired_speed):
         """
@@ -334,7 +337,8 @@ class MPCDemo(Node):
         
         # Update controller
         flat = self.sanitize_trajectory_dic(self.traj.update(curr_time - self.t0))
-        u = self.controller.update(curr_time, curr_state, flat)
+        with self.controller_lock:
+            u = self.controller.update(curr_time, curr_state, flat)
         u_yaw = self.yaw_pd.compute_control(curr_time, quat, flat['yaw'])
         
         # Extract control values
