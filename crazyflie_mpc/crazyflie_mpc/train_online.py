@@ -139,11 +139,11 @@ class OnlineLearningNode(Node):
         train_traj = train_set.detach().unsqueeze(1)
         train_traj = train_traj + torch.randn_like(train_traj) * self.noise
         
-        EPOCHS = 60
-        LR = 0.01
+        EPOCHS = 200
+        LR = 0.005
         LOOKAHEAD = 2
         L2_LAMBDA = 1e-7
-        PLOT_FREQ = 20
+        PLOT_FREQ = 50
         STEP_SKIP = 1
 
         save_path = os.path.join(self.dirname, f'{self.frame}_{self.model_cnt}.pth')
@@ -188,10 +188,10 @@ class OnlineLearningNode(Node):
                 # l2_lambda = 7e-8
                 if idx == 0:
                     # loss from the first trajectory
-                    loss = F.mse_loss(pred_traj[:, :, :state_dim], obs[:, :, :state_dim]) + l2_lambda* l2_norm
+                    loss = F.mse_loss(pred_traj[:, :, :state_dim], obs[:, :, :state_dim]) + l2_lambda * l2_norm
                 else:
                     # adding loss from other trajectories
-                    loss += F.mse_loss(pred_traj[:, :, :state_dim], obs[:, :, :state_dim]) + l2_lambda + l2_norm
+                    loss += F.mse_loss(pred_traj[:, :, :state_dim], obs[:, :, :state_dim]) + l2_lambda * l2_norm
 
             train_loss_arr.append(loss.item())
             optimizer.zero_grad()
@@ -207,10 +207,10 @@ class OnlineLearningNode(Node):
             optimizer.step()
 
             if i % plot_freq == 0:
-                if i == 400: # reduce learning rate after 400 epochs
+                if i == 100: # reduce learning rate after 400 epochs
+                    LR = 0.002
+                elif i == 150:
                     LR = 0.001
-                elif i == 13000:
-                    LR = 0.01
                 optimizer.param_groups[0]['lr'] = LR
 
                 self.get_logger().info(
