@@ -211,7 +211,7 @@ class MPCDemo(Node):
         Callback function for state changes
         """
         if msg.data == self.m_state:
-            self.get_logger().warn('Already in state {msg.data}')
+            self.get_logger().warn(f'Already in state {msg.data}')
 
         match msg.data:
             case 1:
@@ -351,7 +351,7 @@ class MPCDemo(Node):
         msg.linear.x = np.clip(np.degrees(pitch), -10, 10) # Pitch
         msg.linear.y = np.clip(np.degrees(roll), -10, 10) # Roll
         msg.linear.z = self.map_u1(thrust) # Thrust
-        msg.angular.z = u_yaw # Yawrate
+        msg.angular.z = -u_yaw # Yawrate
         if not self.sim:
             self.cmd_pub.publish(msg)
         

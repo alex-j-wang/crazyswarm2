@@ -5,9 +5,9 @@ class YawPD:
     def __init__(self):
         self.prev_yaw = None
         self.prev_t = None
-        self.kp = 2.0
-        self.kd = 0.2
-        self.max_yaw_rate = np.radians(180)
+        self.kp = 200.0
+        self.kd = 20.0
+        self.max_yaw_rate = 180
 
     def _wrap_angle(self, angle):
         return np.arctan2(np.sin(angle), np.cos(angle))
