@@ -7,3 +7,4 @@ crazyswarm2_sim_webots/
 log*.csv
 params*.csv
 trajectory_summary.svg
+crazyflie_mpc/data/knode_models/online

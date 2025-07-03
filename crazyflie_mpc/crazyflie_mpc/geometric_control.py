@@ -60,7 +60,7 @@ class GeometriControl(object):
         rates       = state['w']
         pos_des     = flat_output['x']
         vel_des     = flat_output['x_dot']
-        yaw_des     = 0.0 #flat_output['yaw']
+        yaw_des     = flat_output['yaw']
 
         # Get rotation matrix, in quaternions
         r           = Rotation.from_quat(quats)

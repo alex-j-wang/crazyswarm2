@@ -14,7 +14,8 @@ https://en.cppreference.com/w/
     ```
 - Fix output when node killed while plotting
 - Rename data to models and make a data folder
-- Yaw PID
+- Add integral term to geometric controller?
+- Formula for pwm from thrust 
 - Update crazyflie_mpc CMakeLists.txt and package.xml? Can I avoid PYTHONPATH using CMakeLists.txt?
 
 ## Futue Plans
@@ -26,11 +27,9 @@ https://en.cppreference.com/w/
 - Understand all magic numbers and add to config (including model filenames)
 - Check Docker build log, see if anything in `requirements.txt` is unnecessary
 - Set up zoxide
-- Add server to launch file(s)?
 - Access MPC data package more elegantly? No need for NODE to be an entire subpackage.
 - Make a template MPC Python program, API for inputs and outputs
 - Set up SIM backend (`cmd_vel_legacy` not yet implemented)
-- ~~Transition to crazyswarm2 API~~ (using `cmd_vel_legacy` switches to low-level control)
 - Very long term: ideally we get drones with cameras that can see each other, bypassing the need for external motion tracking
 - Remake hybrid models or delete HybridControl (note that existing models rely on the `solvers` library being under a `Utils` package)
 
@@ -49,6 +48,7 @@ https://en.cppreference.com/w/
 - Remove unnecessary things like `self.world_frame = self.get_parameter('world_frame').get_parameter_value().string_value` (only really important if used more than once)
 - Purpose of `cmd_vel_stamped`? Is this the same as `cmd_vel_legacy`?
 - Code formatter
+- Return a value, not array, for u1
 
 ## Miscellaneous / Untested
 - Look through ROS documentation, docs files
@@ -68,8 +68,5 @@ https://en.cppreference.com/w/
     - follow_waypoint: ensures the model being used is up to date, feeds new data into knode_control
 - Can we combine data_writer and train_online? Should knode have a separate launch file?
 - One model updater per Crazyflie
-- Clear online models, copy base model to online; 3 seconds after state is changed to trajectory, start training
-- Clean up imports
 - Verbose mode: more training updates
 - Add history mode to plotting
-- Depending on processing speed, may need to slow down model updates or use more history

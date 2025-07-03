@@ -21,6 +21,7 @@ from knode_control import KNODEControl
 from geometric_control import GeometriControl
 from gp_control import GPControl
 from scipy.interpolate import interp1d
+from yaw_pd import YawPD
 
 class MPCDemo(Node):
     def __init__(self):
@@ -73,6 +74,7 @@ class MPCDemo(Node):
         self.trajectory_points = self.get_trajectory_points()
         self.traj = None # Set by state updates
         self.controller = None # Set by state updates
+        self.yaw_pd = YawPD()
         
         self.t0 = self.get_clock().now().nanoseconds / 1e9
         self.prev_time = self.get_clock().now().nanoseconds / 1e9
@@ -333,13 +335,11 @@ class MPCDemo(Node):
         # Update controller
         flat = self.sanitize_trajectory_dic(self.traj.update(curr_time - self.t0))
         u = self.controller.update(curr_time, curr_state, flat)
+        u_yaw = self.yaw_pd.compute_control(curr_time, quat, flat['yaw'])
         
         # Extract control values
-        roll = float(u['euler'][0])
-        pitch = float(u['euler'][1])
-        yaw = float(u['euler'][2])
-        assert(u['cmd_thrust'].size == 1)
-        thrust = float(u['cmd_thrust'][0])
+        roll, pitch, yaw = u['euler']
+        thrust = u['cmd_thrust'][0].item()
         r_ddot_des = u['r_ddot_des']
         
         # Create and publish command
@@ -347,7 +347,7 @@ class MPCDemo(Node):
         msg.linear.x = np.clip(np.degrees(pitch), -10, 10) # Pitch
         msg.linear.y = np.clip(np.degrees(roll), -10, 10) # Roll
         msg.linear.z = self.map_u1(thrust) # Thrust
-        msg.angular.z = np.degrees(0) # Yawrate (TODO: 0 for now)
+        msg.angular.z = u_yaw # Yawrate
         if not self.sim:
             self.cmd_pub.publish(msg)
         
