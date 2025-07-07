@@ -79,7 +79,7 @@ Plotting of actual and prescribed trajectories can be enabled through either `/c
 
 ### Online Learning
 
-When using the KNODE controller, the system will launch nodes to perform online learning based on live flight data. Initial models for each Crazyflie must be placed in `crazyflie_mpc/data/knode_models/init`. The training nodes will periodically publish new models to `crazyflie_mpc/data/knode_models/online`. Each Crazyflie has its own models.
+When using the KNODE controller, the system will launch nodes to perform online learning based on live flight data. Initial models for each Crazyflie must be placed in `crazyflie_mpc/models/knode/init`. The training nodes will periodically publish new models to `crazyflie_mpc/models/knode/online`. Ensure these folders exist. Each Crazyflie has its own models.
 
 ## Topics
 

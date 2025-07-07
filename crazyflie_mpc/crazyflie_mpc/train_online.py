@@ -65,10 +65,10 @@ class OnlineLearningNode(Node):
         self.ode_train = NeuralODE(RigidHybridCascade(), ode_solve, step_size)
         
         # Clear previous models, load base model
-        self.dirname = os.path.join('/', 'ros_ws', 'src', 'crazyflie_mpc', 'data', 'knode_models', 'online')
+        self.dirname = os.path.join('/', 'ros_ws', 'src', 'crazyflie_mpc', 'models', 'knode', 'online')
         for path in glob.glob(os.path.join(self.dirname, f'{self.frame}_*.pth')):
             os.remove(path)
-        self.initdir = os.path.join('/', 'ros_ws', 'src', 'crazyflie_mpc', 'data', 'knode_models', 'init')
+        self.initdir = os.path.join('/', 'ros_ws', 'src', 'crazyflie_mpc', 'models', 'knode', 'init')
         shutil.copyfile(os.path.join(self.initdir, f'{self.frame}.pth'), os.path.join(self.dirname, f'{self.frame}_0.pth'))
 
         # Start training thread

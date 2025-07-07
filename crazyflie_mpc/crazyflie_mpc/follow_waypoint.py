@@ -253,7 +253,7 @@ class MPCDemo(Node):
         """
         if self.m_state == 2:
             with self.controller_lock:
-                dirname = os.path.join('/', 'ros_ws', 'src', 'crazyflie_mpc', 'data', 'knode_models', 'online')
+                dirname = os.path.join('/', 'ros_ws', 'src', 'crazyflie_mpc', 'models', 'knode', 'online')
                 target_path = os.path.join(dirname, f'{self.frame}_{msg.data}.pth')
                 self.controller.update_model(target_path)
                 self.get_logger().info(f'Updated knode controller using {self.frame}_{msg.data}.pth')

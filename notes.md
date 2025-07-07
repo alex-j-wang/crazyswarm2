@@ -2,21 +2,10 @@ https://docs.ros.org/en/humble/index.html
 https://en.cppreference.com/w/
 
 ## To Do
-- Figure out `rclpy.shutdown()` and reincorporate it to `command` and `follow_waypoint` nodes (try / except / finally)
-    ```
-    try:
-        rclpy.spin(node)
-    except KeyboardInterrupt:
-        pass
-    finally:
-        node.destroy_node()
-        rclpy.shutdown()
-    ```
-- Fix output when node killed while plotting
-- Rename data to models and make a data folder
 - Add integral term to geometric controller?
 - Formula for pwm from thrust 
 - Update crazyflie_mpc CMakeLists.txt and package.xml? Can I avoid PYTHONPATH using CMakeLists.txt?
+- Switch controllers earlier?
 
 ## Futue Plans
 - Multi-step trajectories

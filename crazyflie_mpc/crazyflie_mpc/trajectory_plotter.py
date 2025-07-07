@@ -5,6 +5,7 @@ import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import PoseStamped, TwistStamped
 from rcl_interfaces.msg import ParameterDescriptor, ParameterType
+from std_msgs.msg import Int32
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -49,6 +50,7 @@ class Trajectory3DPlotter(Node):
                 lambda msg, n=name: self.goal_callback(msg, n),
                 10
             )
+        self.create_subscription(Int32, '/command/cmd_state', self.cmd_state_callback, 1) # Phase request
 
 
         self.traj_fig = plt.figure(figsize=(12, 5))
@@ -111,6 +113,15 @@ class Trajectory3DPlotter(Node):
             pos = msg.twist.linear
             self.data[cfname]['goal'].append((pos.x, pos.y, pos.z))
 
+    def cmd_state_callback(self, msg: Int32):
+        """
+        Callback function for state changes
+        """
+        if msg.data == 4:
+            self.get_logger().info('Shutdown requested!')
+            plt.savefig("trajectory_summary.svg")
+            plt.ioff()
+
     def update_plot(self):
         with self.data_lock:
             for name in self.cfnames:
@@ -149,8 +160,6 @@ def main(args=None):
         pass
     finally:
         node.destroy_node()
-        plt.savefig("trajectory_summary.svg")
-        plt.ioff()
 
 if __name__ == '__main__':
     main()

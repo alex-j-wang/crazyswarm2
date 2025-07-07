@@ -54,7 +54,7 @@ class HybridControl(object):
         ode             = vertcat(xdot, xdotdot)
         
         # loading neural network parameters
-        ode_torch = torch.load("/ros_ws/src/crazyflie_mpc/data/hybrid_models/rigid_1layer_2traj.pth", map_location=torch.device('cpu'), weights_only=False)['ode_train']
+        ode_torch = torch.load("/ros_ws/src/crazyflie_mpc/models/hybrid/rigid_1layer_2traj.pth", map_location=torch.device('cpu'), weights_only=False)['ode_train']
         param_ls = []
         for _, layer in ode_torch.func.state_dict().items():
             param_ls.append(layer.detach().cpu().numpy())
