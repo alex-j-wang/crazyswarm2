@@ -8,8 +8,8 @@ This package provides MPC (Model Predictive Control) and other control algorithm
 
 - Geometric Controller
 - Gaussian Process (GP) Controller
-- Hybrid Controller
 - Model Predictive Controller (MPC)
+- Knowledge-Based Neural Ordinary Differential Equation (KNODE) Controller
 
 ## Prerequisites
 
@@ -63,19 +63,23 @@ ros2 launch crazyflie launch.py gui:=False teleop:=False reboot:=True
 ros2 launch crazyflie_mpc launch.py
 ```
 
-These can be performed in any directory once the packages are built.
+These can be performed in any directory once the packages are built but must be run in separate command line instances. Closed-loop control requires a camera system publishing `tf` updates to the ROS system.
 
 ### Controller Parameters
 
-Crazyflies must be enabled in `/config/crazyflies.yaml` under the `crazyflie` package.
+Crazyflies must be enabled in `/config/crazyflies.yaml` under the `crazyflie` package. Ensure uri settings are correct. A blinking red LED indicates a Crazyflie is connected.
 
 You can configure controller parameters in `/config/mpc.yaml`. Each active Crazyflie should have a trajectory specified here. Trajectory formats are demonstrated in `/config/example_trajectories.yaml`.
 
-To test `crazyflie_mpc` without hardware, launch with `sim:=True`. 
+To test `crazyflie_mpc` without hardware, launch with `sim:=True`. This will silence warnings and suppress velocity commands for debugging purposes.
 
 ### Plotting
 
-Plotting of actual and prescribed trajectories can be enabled through either `/config/mpc.yaml` or `plotting:=True` when launching. For the GUI to appear, you must run `xhost +local:root` outside the container.
+Plotting of actual and prescribed trajectories can be enabled through either `/config/mpc.yaml` or `plotting:=True` when launching. For the GUI to appear, you must run `xhost +local:root` outside the container. If problems arise, ensure `echo $DISPLAY` is consistent inside and outside.
+
+### Online Learning
+
+When using the KNODE controller, the system will launch nodes to perform online learning based on live flight data. Initial models for each Crazyflie must be placed in `crazyflie_mpc/data/knode_models/init`. The training nodes will periodically publish new models to `crazyflie_mpc/data/knode_models/online`. Each Crazyflie has its own models.
 
 ## Topics
 
@@ -97,3 +101,4 @@ Plotting of actual and prescribed trajectories can be enabled through either `/c
 The package uses two internal topics to keep behavior synchronized:
 - `cmd_state` (std_msgs/Int32): Phase requests from command node
 - `cf_ready` (std_msgs/String): Readiness broadcasts from Crazyflie nodes
+- `model` (std_msgs/Int32): Model update notifications from online learning nodes
