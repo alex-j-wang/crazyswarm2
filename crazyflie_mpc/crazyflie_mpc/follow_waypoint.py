@@ -84,6 +84,12 @@ class MPCDemo(Node):
         self.t0 = self.get_clock().now().nanoseconds / 1e9
         self.prev_time = self.get_clock().now().nanoseconds / 1e9
         self.timer = self.create_timer(1.0 / self.control_frequency, self.timer_callback)
+
+        req = SetParameters.Request()
+        param_name = f'{self.frame}.params.motorPowerSet.enable'
+        param_value = ParameterValue(type=ParameterType.PARAMETER_INTEGER, integer_value=int(1))
+        req.parameters = [Parameter(name=param_name, value=param_value)]
+        self.setParamsService.call_async(req)
         
     def create_controller(self):
         """
@@ -265,8 +271,10 @@ class MPCDemo(Node):
         """
         Command individual motors
         """
+        cmd_pwm = (cmd_speeds - 420.9420) / 0.03950236
+        cmd_pwm = np.clip(cmd_pwm, 0, 60000)
         req = SetParameters.Request()
-        for motor, speed in enumerate(cmd_speeds, 1):
+        for motor, speed in enumerate(cmd_pwm, 1):
             param_name = f'{self.frame}.params.motorPowerSet.m{motor}'
             param_value = ParameterValue(type=ParameterType.PARAMETER_INTEGER, integer_value=int(speed))
             req.parameters.append(Parameter(name=param_name, value=param_value))
@@ -360,6 +368,11 @@ class MPCDemo(Node):
         r_ddot_des = u['r_ddot_des']
         
         # Create and publish command
+        msg = Twist()
+        msg.linear.x = np.clip(np.degrees(pitch), -10, 10) # Pitch
+        msg.linear.y = np.clip(np.degrees(roll), -10, 10) # Roll
+        msg.linear.z = self.map_u1(thrust) # Thrust
+        msg.angular.z = -u_yaw # Yawrate
         if not self.sim:
             # TODO: yaw control
             self.cmd_motors(cmd_motor_speeds)
