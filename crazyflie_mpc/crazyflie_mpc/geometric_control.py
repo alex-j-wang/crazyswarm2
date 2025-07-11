@@ -22,10 +22,13 @@ class GeometriControl(object):
         # STUDENT CODE HERE
         self.pos_kp = 2.0
         self.pos_kd = 2 * 1.0 * np.sqrt(self.pos_kp)
+        self.pos_ki = 0.0
         self.posz_kp = 4.0  # was 4
         self.posz_kd = 2.4  # was 2.4
+        self.posz_ki = 1.0
         self.pos_kp_mat = np.diag(np.array([self.pos_kp, self.pos_kp, self.posz_kp]))
         self.pos_kd_mat = np.diag(np.array([self.pos_kd, self.pos_kd, self.posz_kd]))
+        self.pos_ki_mat = np.diag(np.array([self.pos_ki, self.pos_ki, self.posz_ki]))
         self.att_rollpitch_kp = 9
         self.att_rollpitch_kd = 2 * 1.0 * np.sqrt(self.att_rollpitch_kp)
         self.att_yaw_kp = 20
@@ -52,6 +55,10 @@ class GeometriControl(object):
         # self.u_perturb      = chirp(time, f0=10, f1=0.01, t1=self.duration, method='linear')
         # self.cnt            = 0
         # self.reset_flag     = True
+        
+        self.pos_error_integral = np.zeros(3)
+        self.pos_integral_limit = 1.0        
+        self.last_time = None
 
     def update(self, t, state, flat_output):
         pos         = state['x']
@@ -82,9 +89,16 @@ class GeometriControl(object):
         psi         = np.arctan2(-t12 / np.cos(phi), t22 / np.cos(phi))
 
         # Position controller
-        r_ddot_des  = -(self.pos_kd_mat @ (vel - vel_des)) - (self.pos_kp_mat @ (pos - pos_des))
-
-            
+        pos_error = pos - pos_des
+        vel_error = vel - vel_des
+        
+        if self.last_time is not None:
+            dt = t - self.last_time
+            self.pos_error_integral += pos_error * dt
+            self.pos_error_integral = np.clip(self.pos_error_integral, -self.pos_integral_limit, self.pos_integral_limit)
+        self.last_time = t
+        
+        r_ddot_des = -(self.pos_kp_mat @ pos_error) - (self.pos_kd_mat @ vel_error) - (self.pos_ki_mat @ self.pos_error_integral)
             
         # Geometric nonlinear controller
         f_des       = self.mass * r_ddot_des + np.array([0, 0, self.mass * self.g])
