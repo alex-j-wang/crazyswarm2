@@ -25,7 +25,7 @@ class GeometriControl(object):
         self.pos_ki = 0.0
         self.posz_kp = 4.0  # was 4
         self.posz_kd = 2.4  # was 2.4
-        self.posz_ki = 1.0
+        self.posz_ki = 1.5
         self.pos_kp_mat = np.diag(np.array([self.pos_kp, self.pos_kp, self.posz_kp]))
         self.pos_kd_mat = np.diag(np.array([self.pos_kd, self.pos_kd, self.posz_kd]))
         self.pos_ki_mat = np.diag(np.array([self.pos_ki, self.pos_ki, self.posz_ki]))

@@ -1,50 +1,20 @@
 trajectories:
   cf2:
-    type: "waypoint"
-    p0: [1.0, 1.0, 0.5]
-    p1: [1.0, -1.0, 0.5]
-    p2: [-1.0, -1.0, 0.5]
-    p3: [-1.0, 1.0, 0.5]
-    p4: [1.0, 1.0, 0.5]
-    p5: [1.0, -1.0, 0.5]
-    p6: [-1.0, -1.0, 0.5]
-    p7: [-1.0, 1.0, 0.5]
-    p8: [1.0, 1.0, 0.5]
-    p9: [1.0, -1.0, 0.5]
-    p10: [-1.0, -1.0, 0.5]
-    p11: [-1.0, 1.0, 0.5]
-    p12: [1.0, 1.0, 0.5]
-    p13: [1.0, -1.0, 0.5]
-    p14: [-1.0, -1.0, 0.5]
-    p15: [-1.0, 1.0, 0.5]
-    p16: [1.0, 1.0, 0.5]
-    p17: [1.0, -1.0, 0.5]
-    p18: [-1.0, -1.0, 0.5]
-    p19: [-1.0, 1.0, 0.5]
-    p20: [1.0, 1.0, 0.5]
-  cf68:
-    type: "waypoint"
-    p0: [1.0, 1.0, 1.0]
-    p1: [1.0, -1.0, 1.0]
-    p2: [-1.0, -1.0, 1.0]
-    p3: [-1.0, 1.0, 1.0]
-    p4: [1.0, 1.0, 1.0]
-    p5: [1.0, -1.0, 1.0]
-    p6: [-1.0, -1.0, 1.0]
-    p7: [-1.0, 1.0, 1.0]
-    p8: [1.0, 1.0, 1.0]
-    p9: [1.0, -1.0, 1.0]
-    p10: [-1.0, -1.0, 1.0]
-    p11: [-1.0, 1.0, 1.0]
-    p12: [1.0, 1.0, 1.0]
-    p13: [1.0, -1.0, 1.0]
-    p14: [-1.0, -1.0, 1.0]
-    p15: [-1.0, 1.0, 1.0]
-    p16: [1.0, 1.0, 1.0]
-    p17: [1.0, -1.0, 1.0]
-    p18: [-1.0, -1.0, 1.0]
-    p19: [-1.0, 1.0, 1.0]
-    p20: [1.0, 1.0, 1.0]
+    type: "spiral"
+    center: [0.0, 0.0]
+    radius_start: 1.0
+    radius_end: 1.0
+    height_start: 0.5
+    height_end: 0.5
+    revolutions: 3
+  cf74:
+    type: "spiral"
+    center: [0.0, 0.0]
+    radius_start: 1.0
+    radius_end: 1.0
+    height_start: 1.0
+    height_end: 1.0
+    revolutions: 3
 
 variables:
   cf2:
@@ -53,9 +23,11 @@ variables:
     hover: 39000
   cf68:
     hover: 40500
+  cf74:
+    hover: 40000
 
 constants:
-  controller_type: "knode" # Options: geometric, mpc, hybrid, gp, knode
+  controller_type: "geometric" # Options: geometric, mpc, hybrid, gp, knode
   control_frequency: 50.0 # Hz
   z_final: 0.02 # Height above ground at which power should be cut, m
   z_max: 2.0 # Maximum height above ground, m
@@ -75,7 +47,7 @@ constants:
   
   # Waypoint parameters
   setup_speed: 0.2 # m/s
-  desired_speed: 0.5 # m/s
+  desired_speed: 0.2 # m/s
 
   # Enable plotting of intended vs. actual trajectories
   plotting: true
