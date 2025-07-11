@@ -2,10 +2,12 @@ https://docs.ros.org/en/humble/index.html
 https://en.cppreference.com/w/
 
 ## To Do
-- Add integral term to geometric controller?
 - Formula for pwm from thrust 
 - Update crazyflie_mpc CMakeLists.txt and package.xml? Can I avoid PYTHONPATH using CMakeLists.txt?
 - Switch controllers earlier?
+- Yaw commands
+- Query battery voltage
+- Clean up stale branches
 
 ## Futue Plans
 - Multi-step trajectories
@@ -21,6 +23,7 @@ https://en.cppreference.com/w/
 - Set up SIM backend (`cmd_vel_legacy` not yet implemented)
 - Very long term: ideally we get drones with cameras that can see each other, bypassing the need for external motion tracking
 - Remake hybrid models or delete HybridControl (note that existing models rely on the `solvers` library being under a `Utils` package)
+- Plotting modes: full history, partial history, predicted position 
 
 ## Useful Commands
 - `ros2 topic list`
@@ -48,14 +51,3 @@ https://en.cppreference.com/w/
 - Object name
 - CTRL + ALT to select points
 - Create
-
-## Crazyflie Online
-- Will want longer trajectories
-- Need to run several nodes
-    - data_writer: reads Crazyflie data (position, velocity, u_euler) into a file
-    - train_online: reads data and saves new models
-    - follow_waypoint: ensures the model being used is up to date, feeds new data into knode_control
-- Can we combine data_writer and train_online? Should knode have a separate launch file?
-- One model updater per Crazyflie
-- Verbose mode: more training updates
-- Add history mode to plotting

@@ -13,6 +13,8 @@ from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import Vector3
 from sensor_msgs.msg import Imu
 from std_msgs.msg import String, Int32
+from rcl_interfaces.msg import Parameter, ParameterValue, ParameterType
+from rcl_interfaces.srv import SetParameters
 import threading
 
 import waypoint_traj as wt
@@ -53,7 +55,8 @@ class MPCDemo(Node):
         self.est_vel_pub = self.create_publisher(TwistStamped, 'est_vel', 1) # Estimated velocity
         self.u_pub = self.create_publisher(TwistStamped, 'u_euler', 1) # ???
         self.cmd_stamped_pub = self.create_publisher(TwistStamped, 'cmd_vel_stamped', 1) # Timestamped velocity command
-        self.cmd_pub = self.create_publisher(Twist, 'cmd_vel_legacy', 1) # Velocity command for Crazyflie
+        self.setParamsService = self.create_client(SetParameters, '/crazyflie_server/set_parameters') # Individual motor commands
+        self.setParamsService.wait_for_service()
         self.goal_pub = self.create_publisher(TwistStamped, 'goal', 1) # Target twist along trajectory
         self.tf_pub = self.create_publisher(PoseStamped, 'tf_pos', 1) # Position from tf
         
@@ -257,6 +260,17 @@ class MPCDemo(Node):
                 target_path = os.path.join(dirname, f'{self.frame}_{msg.data}.pth')
                 self.controller.update_model(target_path)
                 self.get_logger().info(f'Updated knode controller using {self.frame}_{msg.data}.pth')
+
+    def cmd_motors(self, cmd_speeds):
+        """
+        Command individual motors
+        """
+        req = SetParameters.Request()
+        for motor, speed in enumerate(cmd_speeds, 1):
+            param_name = f'{self.frame}.params.motorPowerSet.m{motor}'
+            param_value = ParameterValue(type=ParameterType.PARAMETER_INTEGER, integer_value=int(speed))
+            req.parameters.append(Parameter(name=param_name, value=param_value))
+        self.setParamsService.call_async(req)
             
     def generate_traj(self, points, desired_speed):
         """
@@ -298,7 +312,7 @@ class MPCDemo(Node):
         
         if self.m_state in (0, 4):
             msg = Twist()
-            self.cmd_pub.publish(msg)
+            self.cmd_motors(np.zeros(4))
             if not self.ready_sent:
                 self.ready_sent = True
                 self.ready_pub.publish(String(data=self.frame))
@@ -313,9 +327,7 @@ class MPCDemo(Node):
             self.aborted = True
 
         if self.aborted:
-            msg = Twist()
-            msg.linear.z = 30000. # TODO: land more gracefully
-            self.cmd_pub.publish(msg)
+            self.cmd_motors(np.repeat(30000, 4))
             if pos[2] <= self.get_parameter('z_final').value:
                 self.get_logger().warn('Abort complete, shutting down')
                 self.m_state = 4
@@ -344,16 +356,13 @@ class MPCDemo(Node):
         # Extract control values
         roll, pitch, yaw = u['euler']
         thrust = u['cmd_thrust'][0].item()
+        cmd_motor_speeds = u['cmd_motor_speeds']
         r_ddot_des = u['r_ddot_des']
         
         # Create and publish command
-        msg = Twist()
-        msg.linear.x = np.clip(np.degrees(pitch), -10, 10) # Pitch
-        msg.linear.y = np.clip(np.degrees(roll), -10, 10) # Roll
-        msg.linear.z = self.map_u1(thrust) # Thrust
-        msg.angular.z = -u_yaw # Yawrate
         if not self.sim:
-            self.cmd_pub.publish(msg)
+            # TODO: yaw control
+            self.cmd_motors(cmd_motor_speeds)
         
         # Log data for debugging and visualization
         self.log_ros_info(roll, pitch, yaw, r_ddot_des, v, msg, flat, pos, quat, thrust)
