@@ -56,3 +56,6 @@ constants:
   data_frequency: 50.0 # data point frequency, Hz
   model_period: 10.0 # seconds between model updates
   noise: 0.000 # noise level for training data
+
+  # Enable downwash control term
+  downwash: true

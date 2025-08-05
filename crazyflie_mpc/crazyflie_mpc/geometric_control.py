@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.spatial.transform import Rotation
+from scipy.integrate import simps
 from tf_transformations import euler_from_matrix
 
 class GeometriControl(object):
@@ -18,6 +19,13 @@ class GeometriControl(object):
         # You may define any additional constants you like including control gains.
         self.inertia        = np.diag(np.array([self.Ixx, self.Iyy, self.Izz])) # kg*m^2
         self.g              = 9.81 # m/s^2
+
+        self.lambda_param = 0.1   # characteristic length (m)
+        self.z0 = 0.05            # offset in denominator (m)
+        self.S = 1.0              # spreading factor
+        self.uh = 2.0             # max induced velocity (m/s)
+        self.cd = 1.0             # drag coefficient
+        self.lambda_thresh = 0.3  # downwash cutoff (m)
 
         # STUDENT CODE HERE
         self.pos_kp = 2.0
@@ -60,7 +68,40 @@ class GeometriControl(object):
         self.pos_integral_limit = 1.0        
         self.last_time = None
 
-    def update(self, t, state, flat_output):
+    def compute_downwash(self, downwash_transforms, num_samples=10):
+        f_downwash = np.zeros(3)
+
+        rho = 1.225
+        R = self.lambda_param / 2
+        A = np.pi * R**2
+        z0 = self.z0
+        S = self.S
+        uh = self.uh
+        cd = self.cd
+
+        for tf in downwash_transforms:
+            p_rel = tf['translation']
+            z_other = Rotation.from_quat(tf['rotation']).apply([0, 0, 1])
+            z_sep = np.dot(p_rel, -z_other)
+            if z_sep <= 0 or z_sep > self.lambda_thresh:
+                continue
+
+            r_vec = p_rel + z_sep * z_other
+            r_sep = np.linalg.norm(r_vec)
+
+            # Discretize radial range
+            r = np.linspace(0, R, num_samples)
+            z_norm = z_sep / self.lambda_param
+            r_norm = r / (S * (z_norm - z0))
+            v = uh / (z_norm - z0) * (1 + (np.sqrt(2) - 1) * r_norm**2)**-2
+            integrand = v**2 * 2 * np.pi * r
+
+            f_mag = 0.5 * rho * simps(integrand, r) * cd
+            f_downwash += f_mag * (-z_other)
+
+        return f_downwash
+
+    def update(self, t, state, flat_output, downwash_transforms=[]):
         pos         = state['x']
         vel         = state['v']
         quats       = state['q']
@@ -101,7 +142,7 @@ class GeometriControl(object):
         r_ddot_des = -(self.pos_kp_mat @ pos_error) - (self.pos_kd_mat @ vel_error) - (self.pos_ki_mat @ self.pos_error_integral)
             
         # Geometric nonlinear controller
-        f_des       = self.mass * r_ddot_des + np.array([0, 0, self.mass * self.g])
+        f_des       = self.mass * r_ddot_des + np.array([0, 0, self.mass * self.g]) + self.compute_downwash(downwash_transforms)
         f_des       = np.squeeze(f_des) # Need this line if using MPC to compute r_ddot_des
         b3          = rot_mat @ np.array([0, 0, 1])
         b3_des      = f_des / np.linalg.norm(f_des)

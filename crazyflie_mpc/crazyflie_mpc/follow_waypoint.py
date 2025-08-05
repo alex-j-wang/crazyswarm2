@@ -5,7 +5,7 @@ import numpy as np
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, DurabilityPolicy
-from tf2_ros import TransformListener, Buffer
+from tf2_ros import TransformListener, Buffer, LookupException
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import TwistStamped
 from geometry_msgs.msg import TransformStamped
@@ -30,6 +30,8 @@ class MPCDemo(Node):
         
         self.world_frame = self.get_parameter('world_frame').value
         self.frame = self.get_parameter('frame').value
+        self.other_cfs = self.get_parameter('all_cfs').value
+        self.other_cfs.remove(self.frame)
         self.sim = self.get_parameter('sim').value
         
         self.controller_type = self.get_parameter('controller_type').value
@@ -272,10 +274,10 @@ class MPCDemo(Node):
         dt = curr_time - self.prev_time
         
         # Get position from tf
-        if self.tf_buffer.can_transform(self.world_frame, self.frame, rclpy.time.Time(), rclpy.duration.Duration(seconds=2.0)):
-            transform = self.tf_buffer.lookup_transform(self.world_frame, self.frame, rclpy.time.Time())
-        else:
-            self.get_logger().fatal(f'Transform not available within timeout')
+        try:
+            transform = self.tf_buffer.lookup_transform(self.world_frame, self.frame, rclpy.time.Time(), rclpy.duration.Duration(seconds=2.0))
+        except LookupException:
+            self.get_logger().warn(f'Transform {self.world_frame} → {self.frame} not available within timeout')
             return
             
         pos = np.array([transform.transform.translation.x, transform.transform.translation.y, transform.transform.translation.z])
@@ -334,11 +336,28 @@ class MPCDemo(Node):
             'q': quat,
             'w': self.angular_vel
         }
+
+        downwash_sources = []
+        for cf in self.other_cfs:
+            # Get relative transform from self → other
+            try:
+                transform = self.tf_buffer.lookup_transform(self.frame, cf, rclpy.time.Time(), rclpy.duration.Duration(seconds=2.0))
+            except LookupException:
+                self.get_logger().warn(f'Transform {self.frame} → {cf} not available within timeout')
+                continue
+            
+            pos = np.array([transform.transform.translation.x, transform.transform.translation.y, transform.transform.translation.z])
+            quat = np.array([transform.transform.rotation.x, transform.transform.rotation.y, transform.transform.rotation.z, transform.transform.rotation.w])
+
+            downwash_sources.append({
+                'translation': pos,
+                'rotation': quat,
+            })
         
         # Update controller
         flat = self.sanitize_trajectory_dic(self.traj.update(curr_time - self.t0))
         with self.controller_lock:
-            u = self.controller.update(curr_time, curr_state, flat)
+            u = self.controller.update(curr_time, curr_state, flat, downwash_sources)
         u_yaw = self.yaw_pd.compute_control(curr_time, quat, flat['yaw'])
         
         # Extract control values
