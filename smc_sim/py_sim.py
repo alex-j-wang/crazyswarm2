@@ -12,13 +12,13 @@ class CartPole:
 
         #control params
         #sliding surf param
-        self.lambda_x = 8
-        self.lambda_theta = 15
+        self.lambda_x = 2
+        self.lambda_theta = 5
         #switching gains
-        self.k_d_x = 20
-        self.k_d_theta = 50
-        self.delta = 0.2 #bl thickness
-        self.max_force = 100 #in N
+        self.k_d_x = 5
+        self.k_d_theta = 15
+        self.delta = 1 #bl thickness
+        self.max_force = 20 #in N
 
     def solve_acc(self, theta, theta_dot, F, disturbances):
         mc, mp, l, g = self.cart_mass, self.pole_mass, self.pole_length, self.gravity
@@ -37,12 +37,10 @@ class CartPole:
         cos_theta = np.cos(theta)
 
         #sys matrix A
-        A = np.array(
-            [
+        A = np.array([
                 [mc_eff+mp_eff, mp_eff*l*cos_theta], 
                 [mp_eff*l*cos_theta, mp_eff*l**2]
-            ]
-        )
+        ])
         b = np.array([
             F + mp_eff*l*sin_theta*theta_dot**2+d_f,
             mp_eff*g*l*sin_theta+d_tau
@@ -53,8 +51,9 @@ class CartPole:
         if abs(det_A) < 1e-12:
             return 0, 0
         
-        x_ddot, theta_ddot = linalg.inv(A) @ b
-        return x_ddot, theta_ddot
+        acc = np.linalg.solve(A, b)
+        x_ddot, theta_ddot = acc[0], acc[1]
+        return float(x_ddot), float(theta_ddot)
     
     def dynamics(self, state, time, control_force, disturbances):
         """
@@ -107,15 +106,18 @@ class CartPole:
         e_x_dot = -x_dot #assuming zero ref velocity
         s_x = self.lambda_x * e_x + e_x_dot
 
+        #pos error commmands angle ref
+        theta_cmd = 0.05*np.tanh(s_x/self.delta)
+
         #angle ctrl
-        e_theta = theta_ref - theta
+        e_theta = theta_cmd - theta
         e_theta_dot = -theta_dot
         s_theta = self.lambda_theta*e_theta + e_theta_dot
 
-        u_x = self.k_d_x * np.tanh(s_x/self.delta) ## confirm if tanh the best
-        u_theta = self.k_d_theta*np.tanh(s_theta/self.delta)
+        # u_x = self.k_d_x * np.tanh(s_x/self.delta) ## confirm if tanh the best
+        u_theta = -self.k_d_theta*np.tanh(s_theta/self.delta)
 
-        total_control = 0.3*u_x + 1*u_theta #add weights if we need to prioritize one over another
+        total_control = u_theta #only u_theta contributing
         return np.clip(total_control, -self.max_force, self.max_force)
 
 class DistGen:
@@ -149,14 +151,14 @@ def sim_cartpole_smc(integration_method='rk4'):
     t = np.arange(0, tspan, dt)
 
     #intializing states: [x, x_dot, theta, theta_dot]
-    init_state = np.array([0, 0, 0.17453, 0]) #10 deg tilt
+    init_state = np.array([0, 0, 0.03, 0]) #10 deg tilt
     state = init_state.copy()
 
     #ref signals: cart at origin and pole upright
     x_ref = 0
     theta_ref = 0
 
-    #storage arrays
+    #intializing
     states = np.zeros((len(t), 4))
     controls = np.zeros(len(t))
     dist_data = np.zeros((len(t),3))
@@ -164,14 +166,25 @@ def sim_cartpole_smc(integration_method='rk4'):
     for i, time_val in enumerate(t):
         states[i] = state
 
+        # disturbances = {
+        #     'force': (DistGen.step_dist(time_val, 3, 2, -8)+
+        #               DistGen.sin_dist(time_val, 3, 0.8) if time_val > 12 else 0),
+        #     'torque': DistGen.imp_dist(time_val, 8, 0.2, 0.2),
+        #     'mass_unc': 1+0.5*DistGen.step_dist(time_val, 10, 5, 1)
+        # }
         disturbances = {
-            'force': (DistGen.step_dist(time_val, 3, 2, -8)+
-                      DistGen.sin_dist(time_val, 3, 0.8) if time_val > 12 else 0),
-            'torque': DistGen.imp_dist(time_val, 8, 0.2, 0.2),
-            'mass_unc': 1+0.5*DistGen.step_dist(time_val, 10, 5, 1)
+            'force':0,
+            'torque':0,
+            'mass_unc':1.0
         }
         control_force = system.SMC(state, x_ref, theta_ref)
         controls[i] = control_force
+        
+        if i < 10:
+            x, x_dot, theta, theta_dot = state
+            print(f"Step {i}: x={x:.4f}, θ={theta*180/np.pi:.2f}°, u={control_force:.2f}")
+    
+
         dist_data[i] = [disturbances['force'], disturbances['torque'], disturbances['mass_unc']]
 
         #rk4
