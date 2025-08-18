@@ -120,6 +120,84 @@ class CartPole:
         total_control = u_theta #only u_theta contributing
         return np.clip(total_control, -self.max_force, self.max_force)
 
+class Quad2D:
+    def __init__(self):
+        self.mass = 0.03 #kg
+        self.g = 9.81 #m/s^2
+        self.arm_length = 0.046 #m
+        self.Iyy = 1.43e-5 #kgm^2
+
+        #control params
+        self.lambda_x = 3
+        self.lambda_y = 3
+        self.lambda_theta = 5
+
+        #switching gains
+        self.k_d_x = 8
+        self.k_d_y = 8
+        self.k_d_theta = 10
+        self.delta = 1 #bl thickness 
+
+        #control limits, force & moment
+        self.max_u1 = 15 #N
+        self.max_u2 = 2 # Nm
+
+    def dynamics(self, state, time, control_inputs, disturbances):
+        x, y, theta, vx, vy, omega = state
+        u1, u2 = control_inputs
+
+        #disturbance
+        d_fx = disturbances.get('force_x', 0)
+        d_fy = disturbances.get('force_y', 0)
+        d_tau = disturbances.get('torque', 0)
+        mass_unc = disturbances.get('mass_unc', 1)
+        m_eff = self.mass * mass_unc
+
+        #Newton-Euler EOM
+        x_dot = vx
+        y_dot = vy
+        theta_dot = omega
+        vx_dot = -(u1/m_eff)*np.sin(theta)+ d_fx/m_eff
+        vy_dot = (u1/m_eff)*np.cos(theta) + d_fy/m_eff
+        omega_dot = u2/self.Iyy + d_tau/self.Iyy
+        return np.array([x_dot, y_dot, theta_dot, vx_dot, vy_dot, omega_dot])
+
+    def rk4_int(self, state, dt, control_inputs, disturbances):
+        """
+        RK4 method:
+        k1 = f(t, y)
+        k2 = f(t + dt/2, y + dt*k1/2)
+        k3 = f(t + dt/2, y + dt*k2/2)  
+        k4 = f(t + dt, y + dt*k3)
+        y_next = y + dt*(k1 + 2*k2 + 2*k3 + k4)/6
+        """
+        
+        t = 0
+        k1 = self.dynamics(state, t, control_inputs, disturbances)
+        k2 = self.dynamics(state+0.5*dt*k1, t+0.5*dt, control_inputs, disturbances)
+        k3 = self.dynamics(state+0.5*dt*k2, t+0.5*dt, control_inputs, disturbances)
+        k4 = self.dynamics(state+dt*k3, t+dt, control_inputs, disturbances)
+        state_next = state + dt*(k1 + 2*k2+ 2*k3 + k4)/6
+        return state_next
+    
+    def SMC(self, state, x_ref=0, y_ref = 0, theta_ref = 0):
+        x, y, theta, vx, vy, omega = state
+
+        #pos error init
+        e_x = x_ref - x
+        e_y = y_ref - y
+        e_theta = theta_ref - theta
+
+        #vel error init
+        e_vx = 0-vx
+        e_vy = 0-vy
+        e_omega = 0-omega
+
+        #sliding surface
+        s_x = self.lambda_x + e_x + e_vx
+        s_y = self.lambda_y + e_y + e_vy
+        s_theta = self.lambda_theta + e_theta + e_omega
+
 class DistGen:
     #disturbance generator
     @staticmethod
