@@ -110,7 +110,7 @@ class RigidHybridAdditive(ODEF):
                       nn.Linear(16, 6)]
         
         for i in range(len(new_layers)):
-            if str(self.layers[i])[:6] == 'Linear':
+            if str(new_layers[i])[:6] == 'Linear':
                 torch.nn.init.xavier_uniform_(new_layers[i].weight)
                 torch.nn.init.zeros_(new_layers[i].bias)
 
