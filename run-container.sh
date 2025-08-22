@@ -16,7 +16,7 @@ fi
 docker run -it --privileged -d \
   --env DISPLAY=$DISPLAY \
   --env RCUTILS_COLORIZED_OUTPUT=1 \
-  --env PYTHONPATH="/ros_ws/src/crazyflie_mpc/data:$PYTHONPATH" \
+  --env PYTHONPATH="/ros_ws/src/crazyflie_mpc/lib:$PYTHONPATH" \
   --volume "${CURRENT_DIR}:${ROS_WS_PATH}:rw" \
   --volume /dev/bus/usb:/dev/bus/usb \
   --volume /tmp/.X11-unix:/tmp/.X11-unix \

@@ -2,11 +2,12 @@ from casadi import *
 from scipy.spatial.transform import Rotation
 from tf_transformations import euler_from_matrix
 import torch
+from NODE.NODE import *
 
-class HybridControl(object):
+class KNODEControl(object):
     def __init__(self, control_frequency):
         self.control_frequency = control_frequency
-        
+
         # Quadrotor physical parameters.
         self.mass = 0.03  # quad_params['mass'] # kg
         self.Ixx = 1.43e-5  # quad_params['Ixx']  # kg*m^2
@@ -37,45 +38,69 @@ class HybridControl(object):
         trim_force = self.k_thrust * np.square(self.trim_motor_spd)
         self.forces_old = np.array([trim_force, trim_force, trim_force, trim_force])
 
-        inv_inertia = np.linalg.inv(self.inertia)
-
         self.num_states = 6
         self.num_inputs = 3
-        x = MX.sym('x', self.num_states, 1)
-        u = MX.sym('u', self.num_inputs, 1)
+        self.x = MX.sym('x', self.num_states, 1)
+        self.u = MX.sym('u', self.num_inputs, 1)
         
         # These settings are for the kinematic model
-        sampling_rate   = 0.06
-        self.N_ctrl     = 10  # Control horizon (in number of timesteps)
+        self.sampling_rate   = 0.125
+        self.N_ctrl     = 5  # Control horizon (in number of timesteps)
 
         # Kinematic model (knowledge)
-        xdot            = vertcat(x[3], x[4], x[5])
-        xdotdot         = u  # Notice that there are no gravity term here
-        ode             = vertcat(xdot, xdotdot)
+        xdot            = vertcat(self.x[3], self.x[4], self.x[5])
+        xdotdot         = self.u  # Notice that there are no gravity term here
+        self.ode             = vertcat(xdot, xdotdot)
+               
+        f               = Function('f', [self.x, self.u], [self.ode])
+
+        dae = {'x': self.x, 'p': self.u, 'ode': f(self.x, self.u)}
+        options = dict(simplify=True, number_of_finite_elements=4)
+        intg = integrator('intg', 'rk', dae, 0, self.sampling_rate, options)
+        res = intg(x0=self.x, p=self.u)
+        x_next = res['xf']
+        self.Dynamics = Function('F', [self.x, self.u], [x_next])
+
+        self.downsample_cnt = 0
+        self.model_update_cnt = 0
+
+        # Variables for warm-starting
+        self.init_mpc = 0
+        self.val_var = np.zeros((1,))
+        self.lam_g0 = np.zeros((1,))
+    
+    def update_model(self, torch_path):
+        #x = MX.sym('x', self.num_states, 1)
+        #u = MX.sym('u', self.num_inputs, 1)
         
-        # loading neural network parameters
-        ode_torch = torch.load("/ros_ws/src/crazyflie_mpc/models/hybrid/rigid_1layer_2traj.pth", map_location=torch.device('cpu'), weights_only=False)['ode_train']
+        ode_torch = torch.load(torch_path, map_location=torch.device('cpu'), weights_only=False)['ode_train']
         param_ls = []
         for _, layer in ode_torch.func.state_dict().items():
             param_ls.append(layer.detach().cpu().numpy())
-        ode_nn = vertcat(x, u)
-        # unrolling the nn to build a function
-        for i in range(int(len(param_ls) / 2) - 1):
-            # hidden layers
-            ode_nn = tanh(mtimes(param_ls[i * 2], ode_nn)) + param_ls[i * 2 + 1]
-        ode_nn = mtimes(param_ls[-2], ode_nn) + param_ls[-1]  # output layer
         
-        ode_hybrid = ode + 1*ode_nn  # summing knowledge and nn 
-        f               = Function('f', [x, u], [ode_hybrid])
+        ode_nn = vertcat(self.x, self.u)
+        # unrolling the nn to build a function
+        n_layers = len(ode_torch.func.nn_model)
+        param_cnt = 0
+        for i in range(n_layers):
+            # hidden layers
+            if str(ode_torch.func.nn_model[i]) == 'Tanh()':
+                ode_nn = tanh(ode_nn)
+            else:
+                ode_nn = mtimes(param_ls[param_cnt], ode_nn) + param_ls[param_cnt + 1]
+                param_cnt += 2
+        
+        ode_hybrid = self.ode + ode_nn  # summing knowledge and nn 
+        f               = Function('f', [self.x, self.u], [ode_hybrid])
 
-        dae = {'x': x, 'p': u, 'ode': f(x, u)}
+        dae = {'x': self.x, 'p': self.u, 'ode': f(self.x, self.u)}
         options = dict(simplify=True, number_of_finite_elements=4)
-        intg = integrator('intg', 'rk', dae, 0, sampling_rate, options)
-        res = intg(x0=x, p=u)
+        intg = integrator('intg', 'rk', dae, 0, self.sampling_rate, options)
+        res = intg(x0=self.x, p=self.u)
         x_next = res['xf']
-        self.Dynamics = Function('F', [x, u], [x_next])
+        self.Dynamics = Function('F', [self.x, self.u], [x_next])
+        self.model_update_cnt += 1
 
-        self.downsample_cnt = 0
 
     def update(self, t, state, flat_output):
         # State information
@@ -110,11 +135,28 @@ class HybridControl(object):
 
             # Specifying the solver and setting options
             p_opts = dict(print_time=False)
-            s_opts = dict(print_level=0)
+            s_opts = dict(print_level=0,
+                      warm_start_init_point='yes',
+                      warm_start_mult_bound_push=1e-12,
+                      mu_strategy='adaptive')
             opti.solver("ipopt", p_opts, s_opts)
+            
+            # Warm starting a solver after 1 cycle
+            if self.init_mpc >= 1:
+                opti.set_initial(opti.x, self.val_var)
+                opti.set_initial(opti.lam_g, self.lam_g0)
 
-            MPC_ctrl = opti.to_function('M', [p], [u[:, 0]])
-            self.r_ddot_des = MPC_ctrl(vertcat(pos, vel))
+            # Counter for warm starting
+            self.init_mpc += 1
+            
+            opti.set_value(p, vertcat(pos, vel))
+            sol             = opti.solve()
+            self.r_ddot_des = np.squeeze(np.array([sol.value(u[:, 0])]))
+            self.val_var    = sol.value(opti.x)
+            self.lam_g0     = sol.value(opti.lam_g)
+
+            #MPC_ctrl = opti.to_function('M', [p], [u[:, 0]])
+            #self.r_ddot_des = MPC_ctrl(vertcat(pos, vel))
         self.downsample_cnt += 1
 
         # Position controller

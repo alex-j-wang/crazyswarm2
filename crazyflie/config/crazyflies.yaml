@@ -25,7 +25,7 @@ robots:
     initial_position: [0.0, 0.5, 0.0]
     type: cf21_m1 # see robot_types
   cf2:
-    enabled: true
+    enabled: false
     uri: radio://*/120/2M/E7E7E7E702
     initial_position: [0.0, 0.0, 0.0]
     type: cf21 # see robot_types
@@ -271,17 +271,22 @@ robots:
     initial_position: [0.0, 0.0, 0.0]
     type: cf21 # see robot_types
   cf71:
-    enabled: false
+    enabled: true
     uri: radio://*/80/2M/E7E7E7E747
-    initial_position: [0.0, 0., 0.]
+    initial_position: [0.0, 0.0, 0.0]
     type: cf21 # see robot_types
   cf72:
     enabled: false
     uri: radio://*/80/2M/E7E7E7E748
     initial_position: [0.0, 0., 0.]
     type: cf21_single_marker # see robot_types
-  cf90:
+  cf74:
     enabled: true
+    uri: radio://*/120/2M/E7E7E7E74A
+    initial_position: [0.5, 0.0, 0.0]
+    type: cf21 # see robot_types
+  cf90:
+    enabled: false
     uri: radio://*/120/2M/E7E7E7E706
     initial_position: [0.5, 0.0, 0.0]
     type: cf21 # see robot_types

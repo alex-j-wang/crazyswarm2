@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 
+import os
 import numpy as np
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import QoSProfile, DurabilityPolicy
 from tf2_ros import TransformListener, Buffer
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import TwistStamped
@@ -11,13 +13,16 @@ from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import Vector3
 from sensor_msgs.msg import Imu
 from std_msgs.msg import String, Int32
+import threading
 
 import waypoint_traj as wt
 from mpc_control import MPControl
 from hybrid_control import HybridControl
+from knode_control import KNODEControl
 from geometric_control import GeometriControl
 from gp_control import GPControl
 from scipy.interpolate import interp1d
+from yaw_pd import YawPD
 
 class MPCDemo(Node):
     def __init__(self):
@@ -42,6 +47,7 @@ class MPCDemo(Node):
         # self.curr_pos = np.zeros(3)
         # self.target_pos = np.zeros(3)
         # self.curr_quat = np.zeros(4)
+        self.trim_cmd = self.get_parameter('hover').value
         
         # Subscribers and publishers
         self.est_vel_pub = self.create_publisher(TwistStamped, 'est_vel', 1) # Estimated velocity
@@ -55,15 +61,22 @@ class MPCDemo(Node):
         # self.target_sub = self.create_subscription(PoseStamped, '/vicon/crazy_target/pose', self.target_callback, 10) # TODO: set correctly
         # self.vicon_sub = self.create_subscription(PoseStamped, f'/vicon/{self.frame}/{self.frame}/pose', self.vicon_callback, 10) # TODO: set correctly
         
+        qos_transient = QoSProfile(depth=1)
+        qos_transient.durability = DurabilityPolicy.TRANSIENT_LOCAL
         self.state_sub = self.create_subscription(Int32, '/command/cmd_state', self.cmd_state_callback, 1) # Phase request
-        self.ready_pub = self.create_publisher(String, '/command/cf_ready', 1) # Phase completion
+        self.ready_pub = self.create_publisher(String, '/command/cf_ready', qos_transient) # Phase completion
+        if self.controller_type == 'knode':
+            self.model_sub = self.create_subscription(Int32, 'model', self.model_callback, 1) # Model update notification
         
         self.m_state = 0 # 0 = IDLE, 1 = TAKEOFF, 2 = TRAJECTORY, 3 = LANDING, 4 = SHUTDOWN
+        self.aborted = False # Aborted due to high position
         self.ready_sent = False # Prevents duplicate sends
         
         self.trajectory_points = self.get_trajectory_points()
         self.traj = None # Set by state updates
         self.controller = None # Set by state updates
+        self.controller_lock = threading.Lock()
+        self.yaw_pd = YawPD()
         
         self.t0 = self.get_clock().now().nanoseconds / 1e9
         self.prev_time = self.get_clock().now().nanoseconds / 1e9
@@ -80,6 +93,8 @@ class MPCDemo(Node):
                 return HybridControl(self.control_frequency)
             case 'gp':
                 return GPControl(self.control_frequency)
+            case 'knode':
+                return KNODEControl(self.control_frequency)
             case _:
                 return GeometriControl()
                 
@@ -196,7 +211,7 @@ class MPCDemo(Node):
         Callback function for state changes
         """
         if msg.data == self.m_state:
-            self.get_logger.warn('Already in state {msg.data}')
+            self.get_logger().warn(f'Already in state {msg.data}')
 
         match msg.data:
             case 1:
@@ -231,6 +246,17 @@ class MPCDemo(Node):
         self.t0 = self.get_clock().now().nanoseconds / 1e9
         self.m_state = msg.data
         self.ready_sent = False
+
+    def model_callback(self, msg: Int32):
+        """
+        Callback function for online model updates
+        """
+        if self.m_state == 2:
+            with self.controller_lock:
+                dirname = os.path.join('/', 'ros_ws', 'src', 'crazyflie_mpc', 'models', 'knode', 'online')
+                target_path = os.path.join(dirname, f'{self.frame}_{msg.data}.pth')
+                self.controller.update_model(target_path)
+                self.get_logger().info(f'Updated knode controller using {self.frame}_{msg.data}.pth')
             
     def generate_traj(self, points, desired_speed):
         """
@@ -280,6 +306,20 @@ class MPCDemo(Node):
                 self.destroy_node()
                 exit(0)
             return
+
+        # Abort if above threshold
+        if pos[2] >= self.get_parameter('z_max').value and not self.aborted:
+            self.get_logger().fatal(f'Position {pos.round(5)} above threshold, aborting')
+            self.aborted = True
+
+        if self.aborted:
+            msg = Twist()
+            msg.linear.z = 30000. # TODO: land more gracefully
+            self.cmd_pub.publish(msg)
+            if pos[2] <= self.get_parameter('z_final').value:
+                self.get_logger().warn('Abort complete, shutting down')
+                self.m_state = 4
+            return
         
         # if self.trajectory_type == 'tracking':
         #     interp_time = [1, 4]
@@ -297,14 +337,13 @@ class MPCDemo(Node):
         
         # Update controller
         flat = self.sanitize_trajectory_dic(self.traj.update(curr_time - self.t0))
-        u = self.controller.update(curr_time, curr_state, flat)
+        with self.controller_lock:
+            u = self.controller.update(curr_time, curr_state, flat)
+        u_yaw = self.yaw_pd.compute_control(curr_time, quat, flat['yaw'])
         
         # Extract control values
-        roll = float(u['euler'][0])
-        pitch = float(u['euler'][1])
-        yaw = float(u['euler'][2])
-        assert(u['cmd_thrust'].size == 1)
-        thrust = float(u['cmd_thrust'][0])
+        roll, pitch, yaw = u['euler']
+        thrust = u['cmd_thrust'][0].item()
         r_ddot_des = u['r_ddot_des']
         
         # Create and publish command
@@ -312,7 +351,7 @@ class MPCDemo(Node):
         msg.linear.x = np.clip(np.degrees(pitch), -10, 10) # Pitch
         msg.linear.y = np.clip(np.degrees(roll), -10, 10) # Roll
         msg.linear.z = self.map_u1(thrust) # Thrust
-        msg.angular.z = np.degrees(0) # Yawrate (TODO: 0 for now)
+        msg.angular.z = -u_yaw # Yawrate
         if not self.sim:
             self.cmd_pub.publish(msg)
         
@@ -332,15 +371,20 @@ class MPCDemo(Node):
             
     def map_u1(self, u1):
         """
-        Map control thrust to cmd_vel thrust; u1 should range from -0.2 to 0.2
+        Map control thrust (N) to cmd_vel thrust (PWM)
         """
-        trim_cmd = 43000 # Was 43000
-        min_cmd = 20000 # Was 10000
-        u1_trim = 0.327
-        c = min_cmd
-        m = (trim_cmd - min_cmd) / u1_trim
-        mapped_u1 = min(u1 * m + c, 60000.)
-        return mapped_u1
+        min_cmd = 0
+        trim_cmd = self.trim_cmd # Hover thrust
+        trim_u1 = 0.03 * 9.81 # Hover u1
+        max_cmd = 60000. # Max thrust
+        max_u1 = max_cmd / trim_cmd * trim_u1 # Max u1 (N)
+        
+        if u1 <= trim_u1:
+            mapped_u1 = min_cmd + (trim_cmd - min_cmd) * u1 / trim_u1
+        else:
+            mapped_u1 = trim_cmd + (max_cmd - trim_cmd) * (u1 - trim_u1) / (max_u1 - trim_u1)
+        
+        return min(mapped_u1, max_cmd)
         
     def sanitize_trajectory_dic(self, trajectory_dic):
         """

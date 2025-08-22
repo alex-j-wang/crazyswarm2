@@ -20,10 +20,11 @@ install(PROGRAMS
   crazyflie_mpc/gp_control.py
   crazyflie_mpc/hybrid_control.py
   crazyflie_mpc/mpc_control.py
+  crazyflie_mpc/knode_control.py
   crazyflie_mpc/waypoint_traj.py
-  crazyflie_mpc/models.py
   crazyflie_mpc/command.py
   crazyflie_mpc/trajectory_plotter.py
+  crazyflie_mpc/train_online.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
