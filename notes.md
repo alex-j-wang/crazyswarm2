@@ -6,6 +6,9 @@ https://en.cppreference.com/w/
 - Formula for pwm from thrust 
 - Update crazyflie_mpc CMakeLists.txt and package.xml? Can I avoid PYTHONPATH using CMakeLists.txt?
 - Switch controllers earlier?
+- Refactor into constants, decide where to put files (lib folder?)
+- Move geometric nonlinear controller into shared function?
+- Constant hover 36000
 
 ## Futue Plans
 - Multi-step trajectories

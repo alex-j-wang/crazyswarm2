@@ -6,9 +6,9 @@ from tf_transformations import euler_from_matrix
 
 class GeometriControl(object):
     def __init__(self):
-        self.pos_kp = 2.0
+        self.pos_kp = 2.5
         self.pos_kd = 2 * 1.0 * np.sqrt(self.pos_kp)
-        self.pos_ki = 0.0
+        self.pos_ki = 0.25
         self.posz_kp = 4.0
         self.posz_kd = 2.4
         self.posz_ki = 1.5

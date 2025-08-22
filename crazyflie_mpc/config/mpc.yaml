@@ -1,19 +1,19 @@
 trajectories:
-  cf2:
+  cf71:
     type: "spiral"
     center: [0.0, 0.0]
     radius_start: 1.0
     radius_end: 1.0
-    height_start: 0.5
-    height_end: 0.5
+    height_start: 1.5
+    height_end: 1.5
     revolutions: 3
   cf74:
     type: "spiral"
     center: [0.0, 0.0]
     radius_start: 1.0
     radius_end: 1.0
-    height_start: 1.0
-    height_end: 1.0
+    height_start: 2.0
+    height_end: 2.0
     revolutions: 3
 
 variables:
@@ -23,14 +23,16 @@ variables:
     hover: 39000
   cf68:
     hover: 40500
+  cf71:
+    hover: 42000
   cf74:
-    hover: 40000
+    hover: 42000
 
 constants:
   controller_type: "geometric" # Options: geometric, mpc, hybrid, gp, knode
   control_frequency: 50.0 # Hz
   z_final: 0.02 # Height above ground at which power should be cut, m
-  z_max: 2.0 # Maximum height above ground, m
+  z_max: 3.0 # Maximum height above ground, m
   
   # Quadrotor physical parameters
   mass: 0.03 # kg
