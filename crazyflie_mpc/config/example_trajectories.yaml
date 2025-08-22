@@ -36,3 +36,4 @@ spiral:
 hover:
   type: "hover"
   position: [0.0, 0.0, 0.5]
+  duration: 5.0

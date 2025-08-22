@@ -5,9 +5,10 @@ from pathlib import Path
 from crazyflie_py import Crazyswarm
 from crazyflie_py.uav_trajectory import Trajectory
 import numpy as np
-
+from generate_trajectories import generate_trajectories
 
 def main():
+    generate_trajectories()
     swarm = Crazyswarm()
     timeHelper = swarm.timeHelper
     allcfs = swarm.allcfs

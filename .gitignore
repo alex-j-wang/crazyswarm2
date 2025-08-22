@@ -9,3 +9,4 @@ params*.csv
 trajectory_summary.svg
 trajectory_data*.mat
 crazyflie_mpc/models/knode/online
+crazyflie_examples/crazyflie_examples/data/multi_trajectory
