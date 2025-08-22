@@ -10,7 +10,7 @@ https://en.cppreference.com/w/
 - Move geometric nonlinear controller into shared function?
 - Constant hover 36000
 
-## Futue Plans
+## Future Plans
 - Multi-step trajectories
 - Give each trajectory step an optional duration field; speed defaults to the maximum velocity parameter
 - Collision detection and avoidance for trajectories?
