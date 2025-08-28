@@ -3,18 +3,18 @@ import matplotlib.pyplot as plt
 
 class CartpoleSMC:
     def __init__(self):
-        # Cartpole parameters
+        # Cartpole params
         self.M = 1.0      # Cart mass (kg)
         self.m = 0.1      # Pole mass (kg)
         self.l = 0.5      # Pole length (m)
         self.g = 9.81     # Gravity (m/s^2)
         
-        # SMC parameters
-        self.lambda_param = 5.0 
-        self.k = 15.0           
-        self.phi = 0.1          
+        # SMC params
+        self.lambda_param = 0.3 
+        self.k = 8           
+        self.phi = 0.65         
         
-        # Disturbance parameters
+        # Disturbance params
         self.disturbance_amplitude = 2.0
         self.disturbance_freq = 5.0
     
@@ -26,16 +26,16 @@ class CartpoleSMC:
         """
         x, x_dot, theta, theta_dot = state
         
-        # Add external disturbances
+        # Adding external disturbances
         f = control_force + disturbances
         
-        # Common denominator
+        #same denom
         denom = self.M + self.m * np.sin(theta)**2
         
         # Cart acceleration
         x_ddot = (f + self.m * np.sin(theta) * (self.l * theta_dot**2 - self.g * np.cos(theta))) / denom
         
-        # Pole angular acceleration
+        #pole angular acceleration
         theta_ddot = (
             -f * np.cos(theta) 
             - self.m * self.l * theta_dot**2 * np.sin(theta) * np.cos(theta) 
@@ -68,32 +68,36 @@ class CartpoleSMC:
         """
         x, x_dot, theta, theta_dot = state
         
-        # Desired trajectory (cart at origin, pole upright)
-        x_d = 0.0          # desired cart position
-        x_d_dot = 0.0      # desired cart velocity
+        #would like cart at origin and pole upright
+        x_d = 0          # desired cart position
+        x_d_dot = 0      # desired cart velocity
         theta_d = np.pi    # desired pole angle (upright)
-        theta_d_dot = 0.0  # desired pole angular velocity
+        theta_d_dot = 0  # desired pole angular velocity
         
         # Tracking errors
         e_x = x - x_d
         e_x_dot = x_dot - x_d_dot
         e_theta = theta - theta_d
         e_theta_dot = theta_dot - theta_d_dot
+    
+        s = (e_x_dot + self.lambda_param * e_x) + (e_theta_dot + self.lambda_param * e_theta)
         
-        # Combined sliding surface (weighted combination)
-        # Focusing more on pole stabilization
-        w1 = 1.0   # weight for cart position
-        w2 = 3.0   # weight for pole angle (higher priority)
-        
-        s = w1 * (e_x_dot + self.lambda_param * e_x) + w2 * (e_theta_dot + self.lambda_param * e_theta)
-        
-        # Linearized equivalent control (approximate)
-        # This is a simplified version - for exact control, you'd need to solve the full nonlinear system
-        u_eq = (
-            -w1 * self.lambda_param * e_x_dot 
-            - w2 * self.lambda_param * e_theta_dot
-            - w2 * self.g * e_theta  # gravity compensation term
+        #common denom from dynamics
+        denom = self.M + self.m*np.sin(theta)**2
+
+        f_coeff = 1/denom - np.cos(theta)/(self.l * denom)
+
+        #term without f
+        no_f_terms = (
+            # From x_ddot
+            (self.m * np.sin(theta) * (self.l * theta_dot**2 - self.g * np.cos(theta))) / denom +
+            # From theta_ddot  
+            (-self.m * self.l * theta_dot**2 * np.sin(theta) * np.cos(theta) + 
+             (self.M + self.m) * self.g * np.sin(theta)) / (self.l * denom) +
+            # lambda terms
+            self.lambda_param * e_x_dot + self.lambda_param * e_theta_dot + self.g*e_theta
         )
+        u_eq = -no_f_terms/f_coeff
         
         # Switching control with boundary layer
         if abs(s) > self.phi:
@@ -115,7 +119,7 @@ class CartpoleSMC:
         disturbances = np.zeros(n_steps)
         
         # Initial conditions
-        states[0] = [0.1, 0.0, np.pi + 0.3, 0.0]  # slightly off balance
+        states[0] = [0.5, 0.0, np.pi + 0.1, 0.0]  #off center with perturbation
         
         print("Simulating cartpole with sliding mode control...")
         print(f"Using RK4 integration with dt = {dt} s")
@@ -137,7 +141,7 @@ class CartpoleSMC:
             e_theta = theta - np.pi
             e_theta_dot = theta_dot - 0.0
             
-            w1, w2 = 1.0, 3.0
+            w1, w2 = 1.0, 1.0
             sliding_surface[i] = (w1 * (e_x_dot + self.lambda_param * e_x) + 
                                 w2 * (e_theta_dot + self.lambda_param * e_theta))
             
@@ -153,7 +157,7 @@ class CartpoleSMC:
         e_x_dot = x_dot - 0.0
         e_theta = theta - np.pi
         e_theta_dot = theta_dot - 0.0
-        w1, w2 = 1.0, 3.0
+        w1, w2 = 1.0, 1.0
         sliding_surface[-1] = (w1 * (e_x_dot + self.lambda_param * e_x) + 
                              w2 * (e_theta_dot + self.lambda_param * e_theta))
         
@@ -162,14 +166,14 @@ class CartpoleSMC:
     def plot_results(self, t, states, control_inputs, sliding_surface, disturbances):
         """Plot simulation results"""
         fig, axes = plt.subplots(3, 2, figsize=(15, 12))
-        fig.suptitle('Sliding Mode Control of Cartpole', fontsize=16)
+        fig.suptitle('SMC Control of Cartpole', fontsize=16)
         
         # Cart position
         axes[0,0].plot(t, states[:,0], 'b-', linewidth=2, label='Actual x')
         axes[0,0].axhline(y=0, color='r', linestyle='--', linewidth=2, label='Target x = 0')
         axes[0,0].set_xlabel('Time (s)')
-        axes[0,0].set_ylabel('Cart Position (m)')
-        axes[0,0].set_title('Cart Position')
+        axes[0,0].set_ylabel('Cart Pos (m)')
+        axes[0,0].set_title('Cart Pos')
         axes[0,0].grid(True)
         axes[0,0].legend()
         
@@ -177,8 +181,8 @@ class CartpoleSMC:
         axes[0,1].plot(t, states[:,1], 'g-', linewidth=2, label='Actual x_dot')
         axes[0,1].axhline(y=0, color='r', linestyle='--', linewidth=2, label='Target x_dot = 0')
         axes[0,1].set_xlabel('Time (s)')
-        axes[0,1].set_ylabel('Cart Velocity (m/s)')
-        axes[0,1].set_title('Cart Velocity')
+        axes[0,1].set_ylabel('Cart Vel (m/s)')
+        axes[0,1].set_title('Cart Vel')
         axes[0,1].grid(True)
         axes[0,1].legend()
         
@@ -186,8 +190,8 @@ class CartpoleSMC:
         axes[1,0].plot(t, states[:,2], 'b-', linewidth=2, label='Actual theta')
         axes[1,0].axhline(y=np.pi, color='r', linestyle='--', linewidth=2, label='Target theta = pi')
         axes[1,0].set_xlabel('Time (s)')
-        axes[1,0].set_ylabel('Pole Angle (rad)')
-        axes[1,0].set_title('Pole Angle')
+        axes[1,0].set_ylabel('Pole Ang (rad)')
+        axes[1,0].set_title('Pole Ang')
         axes[1,0].grid(True)
         axes[1,0].legend()
         
@@ -195,8 +199,8 @@ class CartpoleSMC:
         axes[1,1].plot(t, states[:,3], 'g-', linewidth=2, label='Actual theta_dot')
         axes[1,1].axhline(y=0, color='r', linestyle='--', linewidth=2, label='Target theta_dot = 0')
         axes[1,1].set_xlabel('Time (s)')
-        axes[1,1].set_ylabel('Pole Angular Velocity (rad/s)')
-        axes[1,1].set_title('Pole Angular Velocity')
+        axes[1,1].set_ylabel('Pole Ang Vel (rad/s)')
+        axes[1,1].set_title('Pole Ang Vel')
         axes[1,1].grid(True)
         axes[1,1].legend()
         
@@ -213,7 +217,7 @@ class CartpoleSMC:
         axes[2,1].axhline(y=0, color='black', linestyle='--', alpha=0.7)
         axes[2,1].set_xlabel('Time (s)')
         axes[2,1].set_ylabel('Value')
-        axes[2,1].set_title('Sliding Surface & Disturbance')
+        axes[2,1].set_title('Sliding Surf & Disturbance')
         axes[2,1].grid(True)
         axes[2,1].legend()
         
@@ -223,7 +227,7 @@ class CartpoleSMC:
 # Run simulation
 if __name__ == "__main__":
     cartpole = CartpoleSMC()
-    t, states, control_inputs, sliding_surface, disturbances = cartpole.simulate(t_end=10.0, dt=0.01)
+    t, states, control_inputs, sliding_surface, disturbances = cartpole.simulate(t_end=20.0, dt=0.01)
     cartpole.plot_results(t, states, control_inputs, sliding_surface, disturbances)
     
     # Print final state
