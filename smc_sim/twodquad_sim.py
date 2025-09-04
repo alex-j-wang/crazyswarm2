@@ -1,479 +1,347 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-class Quad2D_Controller:
+class CascadedPIDController:
+    """
+    Phase 1: Traditional cascaded PID control
+    
+    Architecture:
+    Position PID (100 Hz) -> Attitude PID (500 Hz) -> Motors
+    
+    Goal: Establish solid baseline before adding SMC
+    """
+    
     def __init__(self):
-        # Crazyflie 2.1 parameters
-        self.m = 0.027    # mass (kg)
-        self.I = 1.4e-5   # moment of inertia (kg*m^2)
-        self.l = 0.046    # arm length (m)
-        self.g = 9.81     # gravity (m/s^2)
+        # Physical parameters
+        self.m = 0.5
+        self.g = 9.81
+        self.I = 0.02
+        self.b = 0.01
+        
+        # Position PID gains (outer loop, slower) - VERY CONSERVATIVE
+        self.kp_pos = np.array([0.4, 1.0])
+        self.ki_pos = np.array([0.0, 0.0])  # Much smaller integral gains
+        self.kd_pos = np.array([1.0, 2.0])
+        
+        # Attitude PID gains (inner loop, faster)
+        self.kp_att = 8.0
+        self.ki_att = 0.5  # Reduced integral gain
+        self.kd_att = 4.0
         
         # Control limits
-        self.max_thrust = 4 * 0.016  # Max total thrust
-        self.hover_thrust = self.m * self.g
-        self.u1_min = self.hover_thrust * 0.5
-        self.u1_max = self.hover_thrust * 2.0
-        self.u2_max = 5e-6  # Max torque (reduced for stability)
-        self.theta_max = np.pi/8  # Max 22.5 degrees tilt (reduced)
+        self.max_thrust = 10.0  # Reduced max thrust
+        self.max_torque = 2.0
+        self.max_tilt = np.radians(10)  # Reduced to 15 degrees
         
-        # Conservative controller gains for stability
-        # Position control gains (reduced for stability)
-        self.kp_pos = 0.8
-        self.ki_pos = 0.02
-        self.kd_pos = 0.4
+        self.reset_controller()
         
-        # Attitude control gains (well-tuned PID baseline)
-        self.kp_att = 2.5
-        self.ki_att = 0.1
-        self.kd_att = 0.6
+    def reset_controller(self):
+        self.integral_pos = np.zeros(2)
+        self.integral_att = 0.0
+        self.prev_desired_pos = None  # Track reference changes
         
-        # Conservative SMC parameters 
-        self.lambda_smc = 2.0  # Sliding surface slope (reduced)
-        self.k_smc = 0.3       # Switching gain (much reduced)
-        self.phi_smc = 0.1     # Boundary layer thickness (reduced)
+    def position_controller(self, pos, vel, desired_pos, desired_vel, desired_acc, dt):
+        """Position PID controller (outer loop)"""
         
-        # Control type
-        self.use_smc = False
-        self.controller_name = "PID"
+        # Reset integral if reference changed significantly  
+        if self.prev_desired_pos is not None:
+            pos_change = np.linalg.norm(desired_pos - self.prev_desired_pos)
+            if pos_change > 0.5:  # Reference changed
+                self.integral_pos = np.zeros(2)
+                print(f"  Reference changed, resetting position integrals")
+        self.prev_desired_pos = desired_pos.copy()
         
-        # State variables for integral control
-        self.reset_controller_states()
+        # Tracking errors
+        pos_error = pos - desired_pos
+        vel_error = vel - desired_vel
         
-        # Moderate disturbance parameters
-        self.dist_force_amp = 0.02    # 20 mN force disturbances (reduced)
-        self.dist_torque_amp = 2e-6   # 2 μN⋅m torque disturbances (reduced)
-        self.dist_freq = [1.0, 1.5, 0.7]  # Different frequencies
+        # Integral with anti-windup (smaller limits)
+        self.integral_pos += pos_error * dt
+        self.integral_pos = np.clip(self.integral_pos, -1.0, 1.0)
         
-    def reset_controller_states(self):
-        """Reset all controller internal states"""
-        self.integral_x = 0.0
-        self.integral_y = 0.0
-        self.integral_theta = 0.0
-        self.prev_error_x = 0.0
-        self.prev_error_y = 0.0
-        self.prev_error_theta = 0.0
+        # PID control law
+        acc_cmd = (desired_acc + 
+                  -self.kp_pos * pos_error + 
+                  -self.ki_pos * self.integral_pos + 
+                  -self.kd_pos * vel_error)
         
-    def saturate(self, value, min_val, max_val):
-        """Saturate value between limits"""
-        return np.clip(value, min_val, max_val)
-    
-    def normalize_angle(self, angle):
-        """Normalize angle to [-pi, pi]"""
-        return ((angle + np.pi) % (2*np.pi)) - np.pi
-    
-    def dynamics(self, state, u1, u2, disturbances):
-        """2D quadrotor dynamics with disturbances"""
-        x, x_dot, y, y_dot, theta, theta_dot = state
-        fx_dist, fy_dist, tau_dist = disturbances
+        # Convert acceleration commands to thrust and desired attitude
+        u_x = self.m * acc_cmd[0]
+        u_y = self.m * (acc_cmd[1] + self.g)  # Add gravity compensation
         
-        # Dynamics equations
-        x_ddot = (u1 * np.sin(theta) + fx_dist) / self.m
-        y_ddot = (u1 * np.cos(theta) - self.m * self.g + fy_dist) / self.m
-        theta_ddot = (u2 + tau_dist) / self.I
+        # Thrust magnitude
+        thrust = np.sqrt(u_x**2 + u_y**2)
+        thrust = np.clip(thrust, 0.1, self.max_thrust)
         
-        return np.array([x_dot, x_ddot, y_dot, y_ddot, theta_dot, theta_ddot])
-    
-    def position_controller(self, state, dt, x_ref, y_ref):
-        """PID position controller -> desired thrust and attitude"""
-        x, x_dot, y, y_dot, theta, theta_dot = state
-        
-        # Position errors
-        e_x = x_ref - x
-        e_y = y_ref - y
-        
-        # Update integrals with anti-windup
-        self.integral_x += e_x * dt
-        self.integral_y += e_y * dt
-        self.integral_x = self.saturate(self.integral_x, -1.0, 1.0)
-        self.integral_y = self.saturate(self.integral_y, -1.0, 1.0)
-        
-        # Derivatives
-        de_x = (e_x - self.prev_error_x) / dt if dt > 0 else 0
-        de_y = (e_y - self.prev_error_y) / dt if dt > 0 else 0
-        
-        # PID outputs (desired accelerations)
-        ax_des = self.kp_pos * e_x + self.ki_pos * self.integral_x + self.kd_pos * de_x
-        ay_des = self.kp_pos * e_y + self.ki_pos * self.integral_y + self.kd_pos * de_y
-        
-        # Limit accelerations (more conservative)
-        ax_des = self.saturate(ax_des, -3.0, 3.0)
-        ay_des = self.saturate(ay_des, -3.0, 3.0)
-        
-        # Convert to thrust and desired attitude
-        ay_total = ay_des + self.g
-        
-        # Desired thrust
-        u1_des = self.m * np.sqrt(ax_des**2 + ay_total**2)
-        u1_des = self.saturate(u1_des, self.u1_min, self.u1_max)
-        
-        # Desired attitude
-        if abs(ay_total) > 0.1:
-            theta_des = np.arctan2(ax_des, ay_total)
-            theta_des = self.saturate(theta_des, -self.theta_max, self.theta_max)
+        # Desired roll angle (2D case)
+        if u_y > 0:
+            desired_roll = np.arctan2(u_x, u_y)
         else:
-            theta_des = 0.0
+            desired_roll = 0.0
+            
+        # Limit tilt angle for safety
+        desired_roll = np.clip(desired_roll, -self.max_tilt, self.max_tilt)
         
-        # Store errors
-        self.prev_error_x = e_x
-        self.prev_error_y = e_y
+        return thrust, desired_roll
         
-        return u1_des, theta_des
-    
-    def attitude_controller_pid(self, state, dt, theta_ref):
-        """Pure PID attitude controller"""
-        x, x_dot, y, y_dot, theta, theta_dot = state
+    def attitude_controller(self, roll, roll_rate, desired_roll, dt):
+        """Attitude PID controller (inner loop)"""
         
-        # Attitude error
-        e_theta = self.normalize_angle(theta_ref - theta)
+        # Tracking errors
+        roll_error = roll - desired_roll
+        roll_rate_error = roll_rate - 0.0  # Desired roll rate = 0
         
-        # Update integral with anti-windup
-        self.integral_theta += e_theta * dt
-        self.integral_theta = self.saturate(self.integral_theta, -0.1, 0.1)
+        # Integral with anti-windup
+        self.integral_att += roll_error * dt
+        self.integral_att = np.clip(self.integral_att, -1.0, 1.0)
         
-        # Derivative
-        de_theta = (e_theta - self.prev_error_theta) / dt if dt > 0 else 0
+        # PID control law - FIXED SIGNS!
+        torque = (-self.kp_att * roll_error + 
+                 -self.ki_att * self.integral_att + 
+                 -self.kd_att * roll_rate_error)
         
-        # PID control
-        u2 = (self.kp_att * e_theta + 
-              self.ki_att * self.integral_theta + 
-              self.kd_att * de_theta)
+        # Apply torque limits
+        torque = np.clip(torque, -self.max_torque, self.max_torque)
         
-        u2 = self.saturate(u2, -self.u2_max, self.u2_max)
+        return torque
         
-        # Store error
-        self.prev_error_theta = e_theta
+    def control_update(self, state, desired_pos, desired_vel, desired_acc, dt):
+        """Main control update with debugging"""
+        x, y, roll, x_dot, y_dot, roll_dot = state
+        pos = np.array([x, y])
+        vel = np.array([x_dot, y_dot])
         
-        return u2, 0.0  # Return 0 for sliding surface (not used)
-    
-    def attitude_controller_smc(self, state, dt, theta_ref):
-        """SMC attitude controller with proper design"""
-        x, x_dot, y, y_dot, theta, theta_dot = state
+        # Outer loop: Position control
+        thrust, desired_roll = self.position_controller(
+            pos, vel, desired_pos, desired_vel, desired_acc, dt)
         
-        # Attitude tracking errors
-        e_theta = self.normalize_angle(theta_ref - theta)
-        e_theta_dot = -theta_dot  # Desired angular velocity is 0
+        # Inner loop: Attitude control
+        torque = self.attitude_controller(roll, roll_dot, desired_roll, dt)
         
-        # Sliding surface: s = ė + λe
-        s = e_theta_dot + self.lambda_smc * e_theta
-        
-        # SMC control design
-        # Equivalent control: maintains sliding motion once on surface
-        de_theta = (e_theta - self.prev_error_theta) / dt if dt > 0 else 0
-        u2_eq = -self.I * self.lambda_smc * de_theta  # Feedforward term
-        
-        # Switching control: ensures reaching the sliding surface
-        if abs(s) > self.phi_smc:
-            u2_sw = -self.k_smc * np.sign(s)
+        # Debug info every 50 steps (0.5 seconds)
+        if hasattr(self, '_debug_counter'):
+            self._debug_counter += 1
         else:
-            # Boundary layer implementation to reduce chattering
-            u2_sw = -self.k_smc * (s / self.phi_smc)
-        
-        # Total control (keep SMC contribution moderate)
-        u2_smc_total = u2_eq + u2_sw
-        
-        # Add small PID component for better performance
-        u2_pid = (0.5 * self.kp_att * e_theta + 
-                  0.2 * self.ki_att * self.integral_theta + 
-                  0.3 * self.kd_att * de_theta)
-        
-        # Update integral
-        self.integral_theta += e_theta * dt
-        self.integral_theta = self.saturate(self.integral_theta, -0.1, 0.1)
-        
-        # Combine SMC and PID
-        u2 = u2_pid + 0.3 * u2_smc_total  # Scale down SMC contribution
-        u2 = self.saturate(u2, -self.u2_max, self.u2_max)
-        
-        # Store error
-        self.prev_error_theta = e_theta
-        
-        return u2, s
-    
-    def control_system(self, state, dt, x_ref, y_ref):
-        """Complete control system"""
-        # Outer loop: position control
-        u1, theta_ref = self.position_controller(state, dt, x_ref, y_ref)
-        
-        # Inner loop: attitude control
-        if self.use_smc:
-            u2, sliding_surface = self.attitude_controller_smc(state, dt, theta_ref)
-        else:
-            u2, sliding_surface = self.attitude_controller_pid(state, dt, theta_ref)
-        
-        return u1, u2, theta_ref, sliding_surface
-    
-    def generate_disturbances(self, t):
-        """Generate realistic time-varying disturbances"""
-        # Multiple frequency components for realistic disturbances
-        fx = (self.dist_force_amp * 
-              (0.6 * np.sin(self.dist_freq[0] * t) + 
-               0.3 * np.sin(self.dist_freq[1] * t + np.pi/3) +
-               0.1 * np.sin(self.dist_freq[2] * t + np.pi/6)))
-        
-        fy = (self.dist_force_amp * 0.8 * 
-              (0.5 * np.cos(self.dist_freq[0] * t + np.pi/4) + 
-               0.4 * np.cos(self.dist_freq[1] * t) +
-               0.1 * np.cos(self.dist_freq[2] * t + np.pi/2)))
-        
-        tau = (self.dist_torque_amp * 
-               (0.7 * np.sin(2 * self.dist_freq[0] * t + np.pi/6) +
-                0.3 * np.sin(self.dist_freq[1] * t + np.pi/3)))
-        
-        return np.array([fx, fy, tau])
-    
-    def rk4_step(self, state, dt, u1, u2, disturbances):
-        """4th order Runge-Kutta integration"""
-        k1 = self.dynamics(state, u1, u2, disturbances)
-        k2 = self.dynamics(state + 0.5*dt*k1, u1, u2, disturbances)
-        k3 = self.dynamics(state + 0.5*dt*k2, u1, u2, disturbances)
-        k4 = self.dynamics(state + dt*k3, u1, u2, disturbances)
-        return state + dt*(k1 + 2*k2 + 2*k3 + k4)/6
-    
-    def simulate(self, t_end=12.0, dt=0.01, x_target=0.2, y_target=0.3, 
-                 include_disturbances=True):
-        """Run simulation"""
-        t = np.arange(0, t_end, dt)
-        n_steps = len(t)
-        
-        # Initialize arrays
-        states = np.zeros((n_steps, 6))
-        controls = np.zeros((n_steps, 2))
-        references = np.zeros(n_steps)
-        sliding_surfaces = np.zeros(n_steps)
-        disturbances = np.zeros((n_steps, 3))
-        
-        # Initial conditions - start with small offset
-        states[0] = [-0.05, 0.0, -0.05, 0.0, 0.02, 0.0]  # More conservative start
-        
-        # Reset controller
-        self.reset_controller_states()
-        
-        print(f"Simulating {self.controller_name} controller...")
-        print(f"Target: ({x_target:.1f}, {y_target:.1f}) m")
-        print(f"Disturbances: {'Enabled' if include_disturbances else 'Disabled'}")
-        
-        # Simulation loop
-        for i in range(n_steps - 1):
-            # Generate disturbances
-            if include_disturbances:
-                disturbances[i] = self.generate_disturbances(t[i])
-            else:
-                disturbances[i] = np.zeros(3)
+            self._debug_counter = 0
             
-            # Control system
-            u1, u2, theta_ref, s = self.control_system(states[i], dt, x_target, y_target)
-            
-            controls[i] = [u1, u2]
-            references[i] = theta_ref
-            sliding_surfaces[i] = s
-            
-            # Integrate dynamics
-            states[i+1] = self.rk4_step(states[i], dt, u1, u2, disturbances[i])
-            
-            # Safety check with more lenient bounds
-            if (abs(states[i+1, 0]) > 1.5 or abs(states[i+1, 2]) > 1.5 or 
-                abs(states[i+1, 4]) > np.pi/3):
-                print(f"Simulation stopped at t={t[i]:.2f}s - safety bounds exceeded")
-                # Pad arrays to maintain consistent size
-                t = t[:i+2]
-                states = states[:i+2]
-                controls = controls[:i+2] 
-                references = references[:i+2]
-                sliding_surfaces = sliding_surfaces[:i+2]
-                disturbances = disturbances[:i+2]
-                break
-                
-        return t, states, controls, references, sliding_surfaces, disturbances
+        if self._debug_counter % 50 == 0:
+            pos_err = pos - desired_pos
+            print(f"  Control debug: pos_err=({pos_err[0]:.2f},{pos_err[1]:.2f}), "
+                  f"desired_roll={np.degrees(desired_roll):.1f}°, thrust={thrust:.2f}")
+        
+        return thrust, torque, desired_roll
 
-def compare_controllers():
-    """Compare PID vs SMC performance"""
-    
-    # Simulation parameters
-    sim_time = 12.0
-    target_x, target_y = 0.2, 0.3
-    
-    print("=" * 60)
-    print("COMPARING PID vs SMC CONTROL")
-    print("=" * 60)
-    
-    # Test 1: PID only
-    print("\n--- Testing PID Controller ---")
-    quad_pid = Quad2D_Controller()
-    quad_pid.use_smc = False
-    quad_pid.controller_name = "PID"
-    
-    t_pid, states_pid, controls_pid, refs_pid, sliding_pid, dist_pid = quad_pid.simulate(
-        t_end=sim_time, x_target=target_x, y_target=target_y, include_disturbances=True)
-    
-    # Calculate performance metrics for PID
-    pos_error_pid = np.sqrt((states_pid[:, 0] - target_x)**2 + (states_pid[:, 2] - target_y)**2)
-    final_error_pid = pos_error_pid[-1]
-    # Use last 20% of simulation for steady-state analysis
-    steady_state_idx = max(1, int(0.8 * len(pos_error_pid)))
-    steady_state_error_pid = np.mean(pos_error_pid[steady_state_idx:])
-    max_attitude_pid = np.max(np.abs(states_pid[:, 4]))
-    control_effort_pid = np.mean(np.abs(controls_pid[:, 1]))
-    
-    print(f"PID Results:")
-    print(f"  Simulation time: {t_pid[-1]:.2f}s")
-    print(f"  Final position error: {final_error_pid:.4f} m")
-    print(f"  Steady-state error: {steady_state_error_pid:.4f} m")
-    print(f"  Max attitude: {np.degrees(max_attitude_pid):.1f}°")
-    print(f"  Avg control effort: {control_effort_pid*1e6:.2f} μN⋅m")
-    
-    # Test 2: SMC
-    print("\n--- Testing SMC Controller ---")
-    quad_smc = Quad2D_Controller()
-    quad_smc.use_smc = True
-    quad_smc.controller_name = "SMC"
-    
-    t_smc, states_smc, controls_smc, refs_smc, sliding_smc, dist_smc = quad_smc.simulate(
-        t_end=sim_time, x_target=target_x, y_target=target_y, include_disturbances=True)
-    
-    # Calculate performance metrics for SMC
-    pos_error_smc = np.sqrt((states_smc[:, 0] - target_x)**2 + (states_smc[:, 2] - target_y)**2)
-    final_error_smc = pos_error_smc[-1]
-    steady_state_idx = max(1, int(0.8 * len(pos_error_smc)))
-    steady_state_error_smc = np.mean(pos_error_smc[steady_state_idx:])
-    max_attitude_smc = np.max(np.abs(states_smc[:, 4]))
-    control_effort_smc = np.mean(np.abs(controls_smc[:, 1]))
-    
-    print(f"SMC Results:")
-    print(f"  Simulation time: {t_smc[-1]:.2f}s")
-    print(f"  Final position error: {final_error_smc:.4f} m")
-    print(f"  Steady-state error: {steady_state_error_smc:.4f} m")
-    print(f"  Max attitude: {np.degrees(max_attitude_smc):.1f}°")
-    print(f"  Avg control effort: {control_effort_smc*1e6:.2f} μN⋅m")
-    
-    # Performance comparison
-    print(f"\n--- Performance Comparison ---")
-    if steady_state_error_pid > 0:
-        improvement = ((steady_state_error_pid - steady_state_error_smc)/steady_state_error_pid)*100
-        print(f"Position tracking improvement: {improvement:.1f}%")
-    if control_effort_pid > 0:
-        effort_change = ((control_effort_smc - control_effort_pid)/control_effort_pid)*100
-        print(f"Control effort change: {effort_change:.1f}%")
-    
-    # Plotting - handle different array sizes
-    plot_comparison(t_pid, t_smc, states_pid, states_smc, controls_pid, controls_smc, 
-                   sliding_smc, dist_pid, target_x, target_y, pos_error_pid, pos_error_smc)
 
-def plot_comparison(t_pid, t_smc, states_pid, states_smc, controls_pid, controls_smc, 
-                   sliding_smc, disturbances, target_x, target_y, error_pid, error_smc):
-    """Plot comparison results - handles different array lengths"""
+def quadrotor_dynamics(state, t, controller, desired_traj_func, disturbance_func):
+    """2D quadrotor dynamics - FIXED SIGNS"""
+    x, y, roll, x_dot, y_dot, roll_dot = state
     
-    fig, axes = plt.subplots(3, 2, figsize=(15, 12))
-    fig.suptitle('PID vs SMC Control Comparison', fontsize=16, fontweight='bold')
+    # Get desired trajectory
+    desired_pos, desired_vel, desired_acc = desired_traj_func(t)
     
-    # Position tracking
-    axes[0,0].plot(t_pid, states_pid[:,0], 'b-', linewidth=2, label='PID')
-    axes[0,0].plot(t_smc, states_smc[:,0], 'r-', linewidth=2, label='SMC')
-    axes[0,0].axhline(y=target_x, color='k', linestyle='--', alpha=0.7, label='Target')
-    axes[0,0].set_xlabel('Time (s)')
-    axes[0,0].set_ylabel('X Position (m)')
-    axes[0,0].set_title('X Position Tracking')
-    axes[0,0].grid(True, alpha=0.3)
-    axes[0,0].legend()
+    # Control update
+    dt = 0.01
+    thrust, torque, _ = controller.control_update(
+        state, desired_pos, desired_vel, desired_acc, dt)
     
-    axes[0,1].plot(t_pid, states_pid[:,2], 'b-', linewidth=2, label='PID')
-    axes[0,1].plot(t_smc, states_smc[:,2], 'r-', linewidth=2, label='SMC')
-    axes[0,1].axhline(y=target_y, color='k', linestyle='--', alpha=0.7, label='Target')
-    axes[0,1].set_xlabel('Time (s)')
-    axes[0,1].set_ylabel('Y Position (m)')
-    axes[0,1].set_title('Y Position Tracking')
-    axes[0,1].grid(True, alpha=0.3)
-    axes[0,1].legend()
+    # Use consistent limits with controller
+    thrust = np.clip(thrust, 0.1, controller.max_thrust)
+    torque = np.clip(torque, -controller.max_torque, controller.max_torque)
     
-    # Attitude and control
-    axes[1,0].plot(t_pid, np.degrees(states_pid[:,4]), 'b-', linewidth=2, label='PID')
-    axes[1,0].plot(t_smc, np.degrees(states_smc[:,4]), 'r-', linewidth=2, label='SMC')
-    axes[1,0].set_xlabel('Time (s)')
-    axes[1,0].set_ylabel('Attitude (degrees)')
-    axes[1,0].set_title('Attitude Response')
-    axes[1,0].grid(True, alpha=0.3)
-    axes[1,0].legend()
+    # External disturbances
+    disturbance = disturbance_func(t)
     
-    axes[1,1].plot(t_pid, controls_pid[:,1]*1e6, 'b-', linewidth=2, label='PID')
-    axes[1,1].plot(t_smc, controls_smc[:,1]*1e6, 'r-', linewidth=2, label='SMC')
-    axes[1,1].set_xlabel('Time (s)')
-    axes[1,1].set_ylabel('Torque (μN⋅m)')
-    axes[1,1].set_title('Control Effort')
-    axes[1,1].grid(True, alpha=0.3)
-    axes[1,1].legend()
+    # Quadrotor dynamics - CORRECTED SIGNS
+    # Positive roll should give positive x acceleration
+    x_ddot = (thrust / controller.m) * np.sin(roll) + disturbance[0] / controller.m
+    y_ddot = (thrust / controller.m) * np.cos(roll) - controller.g + disturbance[1] / controller.m
+    roll_ddot = torque / controller.I - controller.b * roll_dot / controller.I
     
-    # Error comparison and sliding surface
-    axes[2,0].plot(t_pid, error_pid, 'b-', linewidth=2, label='PID Error')
-    axes[2,0].plot(t_smc, error_smc, 'r-', linewidth=2, label='SMC Error')
-    axes[2,0].set_xlabel('Time (s)')
-    axes[2,0].set_ylabel('Position Error (m)')
-    axes[2,0].set_title('Position Error Comparison')
-    axes[2,0].grid(True, alpha=0.3)
-    axes[2,0].legend()
-    
-    axes[2,1].plot(t_smc, sliding_smc, 'r-', linewidth=2, label='Sliding Surface')
-    axes[2,1].axhline(y=0, color='k', linestyle='--', alpha=0.7)
-    axes[2,1].axhline(y=0.1, color='gray', linestyle=':', alpha=0.7, label='Boundary ±0.1')
-    axes[2,1].axhline(y=-0.1, color='gray', linestyle=':', alpha=0.7)
-    axes[2,1].set_xlabel('Time (s)')
-    axes[2,1].set_ylabel('Sliding Surface')
-    axes[2,1].set_title('SMC Sliding Surface')
-    axes[2,1].grid(True, alpha=0.3)
-    axes[2,1].legend()
-    
-    plt.tight_layout()
-    plt.show()
-    
-    # Trajectory comparison
-    plt.figure(figsize=(10, 6))
-    plt.plot(states_pid[:,0], states_pid[:,2], 'b-', linewidth=2, label='PID Trajectory', alpha=0.8)
-    plt.plot(states_smc[:,0], states_smc[:,2], 'r-', linewidth=2, label='SMC Trajectory', alpha=0.8)
-    
-    # Start and end points
-    plt.plot(states_pid[0,0], states_pid[0,2], 'go', markersize=8, label='Start')
-    plt.plot(target_x, target_y, 'k*', markersize=15, label='Target')
-    plt.plot(states_pid[-1,0], states_pid[-1,2], 'bo', markersize=8, label='PID Final')
-    plt.plot(states_smc[-1,0], states_smc[-1,2], 'ro', markersize=8, label='SMC Final')
-    
-    plt.xlabel('X Position (m)')
-    plt.ylabel('Y Position (m)')
-    plt.title('2D Trajectory Comparison')
-    plt.grid(True, alpha=0.3)
-    plt.legend()
-    plt.axis('equal')
-    plt.show()
+    return np.array([x_dot, y_dot, roll_dot, x_ddot, y_ddot, roll_ddot])
 
-# Test with disturbance scenarios
-def test_disturbance_scenarios():
-    """Test both controllers under different disturbance levels"""
-    print("\n" + "="*60)
-    print("DISTURBANCE ROBUSTNESS TEST")
-    print("="*60)
-    
-    disturbance_levels = [0.01, 0.02, 0.04]  # Different disturbance amplitudes
-    
-    for dist_level in disturbance_levels:
-        print(f"\n--- Disturbance Level: {dist_level*1000:.0f} mN ---")
-        
-        # Test both controllers
-        for use_smc in [False, True]:
-            controller_name = "SMC" if use_smc else "PID"
-            
-            quad = Quad2D_Controller()
-            quad.use_smc = use_smc
-            quad.controller_name = controller_name
-            quad.dist_force_amp = dist_level
-            quad.dist_torque_amp = dist_level * 1e-4
-            
-            t, states, _, _, _, _ = quad.simulate(t_end=8.0, x_target=0.2, y_target=0.3)
-            
-            # Calculate final error
-            pos_error = np.sqrt((states[:, 0] - 0.2)**2 + (states[:, 2] - 0.3)**2)
-            final_error = pos_error[-1]
-            
-            print(f"  {controller_name}: Final error = {final_error:.4f} m, Sim time = {t[-1]:.1f}s")
 
-# Run the comparison
-if __name__ == "__main__":
-    compare_controllers()
-    test_disturbance_scenarios()
+def rk4_step(f, y, t, h, *args):
+    """RK4 integration step"""
+    k1 = h * f(y, t, *args)
+    k2 = h * f(y + k1/2, t + h/2, *args)
+    k3 = h * f(y + k2/2, t + h/2, *args)
+    k4 = h * f(y + k3, t + h, *args)
+    return y + (k1 + 2*k2 + 2*k3 + k4) / 6
+
+
+def step_trajectory(t):
+    """Step reference trajectory"""
+    if t < 2:
+        return np.array([0, 2]), np.array([0, 0]), np.array([0, 0])
+    elif t < 4:
+        return np.array([2, 2]), np.array([0, 0]), np.array([0, 0])
+    elif t < 6:
+        return np.array([2, 4]), np.array([0, 0]), np.array([0, 0])
+    else:
+        return np.array([0, 4]), np.array([0, 0]), np.array([0, 0])
+
+
+def moderate_disturbance(t):
+    """Very small disturbances for initial testing"""
+    wind = 0.2 * np.array([np.sin(2*t), 0.2*np.cos(3*t)])  # Much smaller
+    if 5 < t < 5.2:  # Small wind gust later in simulation
+        wind += np.array([0.5, 0.3])
+    return wind
+
+
+# Simulation
+print("Phase 1: Cascaded PID Controller Simulation")
+print("Testing basic PID-PID architecture with VERY conservative gains...")
+print("FIXED: Sign error in dynamics and reduced integral gains")
+
+controller = CascadedPIDController()
+
+# Print controller parameters
+print(f"\nController Gains:")
+print(f"Position: Kp={controller.kp_pos}, Ki={controller.ki_pos}, Kd={controller.kd_pos}")
+print(f"Attitude: Kp={controller.kp_att}, Ki={controller.ki_att}, Kd={controller.kd_att}")
+print(f"Max tilt: {np.degrees(controller.max_tilt):.1f}°, Max thrust: {controller.max_thrust}N")
+
+# Simulation parameters
+t_span = [0, 8]
+dt = 0.01
+t_array = np.arange(t_span[0], t_span[1] + dt, dt)
+initial_state = [0, 0, 0, 0, 0, 0]
+
+print(f"\nSimulation: {t_span[1]}s with dt={dt}s")
+print(f"Desired trajectory: (0,2) -> (2,2) -> (2,4) -> (0,4)")
+print(f"Step times: 0-2s, 2-4s, 4-6s, 6-8s")
+
+# RK4 integration
+y = np.array(initial_state, dtype=float)
+states = np.zeros((len(t_array), 6))
+control_data = np.zeros((len(t_array), 3))  # thrust, torque, desired_roll
+
+states[0] = y
+
+print(f"Starting simulation...")
+
+for i in range(1, len(t_array)):
+    y = rk4_step(quadrotor_dynamics, y, t_array[i-1], dt, 
+                 controller, step_trajectory, moderate_disturbance)
+    states[i] = y
+    
+    # Store control data
+    desired_pos, desired_vel, desired_acc = step_trajectory(t_array[i])
+    thrust, torque, desired_roll = controller.control_update(
+        y, desired_pos, desired_vel, desired_acc, dt)
+    control_data[i] = [thrust, torque, desired_roll]
+    
+    # Check for instability
+    if i % 200 == 0:  # Print every 2 seconds
+        roll_deg = np.degrees(y[2])
+        desired_pos, _, _ = step_trajectory(t_array[i])
+        print(f"t={t_array[i]:.1f}s: pos=({y[0]:.2f},{y[1]:.2f}), desired=({desired_pos[0]:.1f},{desired_pos[1]:.1f}), roll={roll_deg:.1f}°")
+    
+    if abs(y[2]) > np.radians(90):  # If roll > 90 degrees, something's wrong
+        print(f"INSTABILITY DETECTED at t={t_array[i]:.2f}s: roll={np.degrees(y[2]):.1f}°")
+        print(f"State: {y}")
+        break
+
+print(f"Simulation completed.")
+
+# Extract results
+x_traj = states[:, 0]
+y_traj = states[:, 1]
+roll_traj = states[:, 2]
+x_dot_traj = states[:, 3]
+y_dot_traj = states[:, 4]
+roll_dot_traj = states[:, 5]
+
+thrust_traj = control_data[:, 0]
+torque_traj = control_data[:, 1]
+desired_roll_traj = control_data[:, 2]
+
+# Reference trajectory (same length as t_array)
+ref_x, ref_y = [], []
+for t in t_array:
+    pos_ref, _, _ = step_trajectory(t)
+    ref_x.append(pos_ref[0])
+    ref_y.append(pos_ref[1])
+
+ref_x = np.array(ref_x)
+ref_y = np.array(ref_y)
+
+# Ensure same lengths
+if len(x_traj) != len(ref_x):
+    min_len = min(len(x_traj), len(ref_x))
+    x_traj = x_traj[:min_len]
+    y_traj = y_traj[:min_len] 
+    ref_x = ref_x[:min_len]
+    ref_y = ref_y[:min_len]
+    t_array = t_array[:min_len]
+
+# Calculate performance metrics
+x_error = x_traj - ref_x
+y_error = y_traj - ref_y
+rmse_x = np.sqrt(np.mean(x_error**2))
+rmse_y = np.sqrt(np.mean(y_error**2))
+max_roll = np.max(np.abs(np.degrees(roll_traj)))
+max_thrust = np.max(thrust_traj)
+
+# Plotting
+fig, axes = plt.subplots(2, 2, figsize=(15, 10))
+fig.suptitle('Phase 1: Cascaded PID Controller', fontsize=16)
+
+# Position tracking
+axes[0,0].plot(t_array, x_traj, 'b-', linewidth=2, label='Actual X')
+axes[0,0].plot(t_array, ref_x, 'r--', linewidth=2, label='Desired X')
+axes[0,0].plot(t_array, y_traj, 'g-', linewidth=2, label='Actual Y')
+axes[0,0].plot(t_array, ref_y, 'm--', linewidth=2, label='Desired Y')
+axes[0,0].set_xlabel('Time (s)')
+axes[0,0].set_ylabel('Position (m)')
+axes[0,0].set_title('Position Tracking')
+axes[0,0].grid(True)
+axes[0,0].legend()
+
+# Velocity
+axes[0,1].plot(t_array, x_dot_traj, 'b-', linewidth=2, label='X velocity')
+axes[0,1].plot(t_array, y_dot_traj, 'g-', linewidth=2, label='Y velocity')
+axes[0,1].set_xlabel('Time (s)')
+axes[0,1].set_ylabel('Velocity (m/s)')
+axes[0,1].set_title('Velocity')
+axes[0,1].grid(True)
+axes[0,1].legend()
+
+# Control inputs
+axes[1,0].plot(t_array, thrust_traj, 'purple', linewidth=2, label='Thrust')
+axes[1,0].plot(t_array, torque_traj * 3, 'orange', linewidth=2, label='Torque × 3')
+axes[1,0].set_xlabel('Time (s)')
+axes[1,0].set_ylabel('Control Input')
+axes[1,0].set_title('Control Inputs')
+axes[1,0].grid(True)
+axes[1,0].legend()
+
+# Attitude tracking
+axes[1,1].plot(t_array, np.degrees(roll_traj), 'b-', linewidth=2, label='Actual Roll')
+axes[1,1].plot(t_array, np.degrees(desired_roll_traj), 'r--', linewidth=2, label='Desired Roll')
+axes[1,1].set_xlabel('Time (s)')
+axes[1,1].set_ylabel('Roll Angle (degrees)')
+axes[1,1].set_title('Attitude Control')
+axes[1,1].grid(True)
+axes[1,1].legend()
+
+plt.tight_layout()
+plt.show()
+
+# Performance summary
+print(f"\nPhase 1 Performance Results:")
+print(f"X Position RMSE: {rmse_x:.4f} m")
+print(f"Y Position RMSE: {rmse_y:.4f} m")
+print(f"Maximum Roll Angle: {max_roll:.2f}°")
+print(f"Maximum Thrust: {max_thrust:.2f} N")
+
+print(f"\nController Parameters:")
+print(f"Position PID gains: Kp={controller.kp_pos}, Ki={controller.ki_pos}, Kd={controller.kd_pos}")
+print(f"Attitude PID gains: Kp={controller.kp_att:.1f}, Ki={controller.ki_att:.1f}, Kd={controller.kd_att:.1f}")
+
+print(f"\nNext Steps:")
+print(f"1. Tune attitude controller first (most critical)")
+print(f"2. Then tune position controller")
+print(f"3. Test with different trajectories and disturbances")
+print(f"4. Once stable, proceed to Phase 2 (add SMC to attitude loop)")
