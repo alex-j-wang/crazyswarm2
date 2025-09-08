@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 class Quad2D:
     def __init__(self):
         self.m = 0.5 #kg
-        self.I = 0.02
+        self.I = 0.2
         self.g = 9.81
         self.l = 0.25
         
@@ -17,7 +17,7 @@ class Quad2D:
         u1, u2 = u        
         #sin and cos dist
         if t>20:
-            self.disturbance_amplitude = 5
+            self.disturbance_amplitude = 5 #N
         else: 
             self.disturbance_amplitude = 0.0
         # dist_x = self.disturbance_amplitude * np.sin(self.disturbance_freq * t)
@@ -41,8 +41,10 @@ class SMC:
         self.lambda_theta = 4.0
         self.k_x = 2.0
         self.k_z = 6.0
-        self.k_theta = 8.0
-        self.phi = 0.1
+        self.k_theta = 8.0 #Nm
+        self.phi_x = 0.1
+        self.phi_z = 0.1
+        self.phi_theta = 0.21 #smoothest control
         
     def control(self, state, desired, t):
         x, z, theta, x_dot, z_dot, theta_dot = state
@@ -58,10 +60,10 @@ class SMC:
         s_x = e_x_dot + self.lambda_x * e_x
         s_z = e_z_dot + self.lambda_z * e_z
         
-        if abs(s_x) > self.phi:
+        if abs(s_x) > self.phi_x:
             theta_cmd = -self.k_x * np.sign(s_x) / self.quad.g
         else:
-            theta_cmd = -self.k_x * (s_x / self.phi) / self.quad.g
+            theta_cmd = -self.k_x * (s_x / self.phi_x) / self.quad.g
         
         theta_cmd = np.clip(theta_cmd, -np.pi/6, np.pi/6)
         
@@ -69,15 +71,15 @@ class SMC:
         e_theta_dot = theta_dot
         s_theta = e_theta_dot + self.lambda_theta * e_theta      
           
-        if abs(s_z) > self.phi:
+        if abs(s_z) > self.phi_z:
             u1_sw = -self.k_z * np.sign(s_z)
         else:
-            u1_sw = -self.k_z * (s_z / self.phi)
+            u1_sw = -self.k_z * (s_z / self.phi_z)
             
-        if abs(s_theta) > self.phi:
+        if abs(s_theta) > self.phi_theta:
             u2_sw = -self.k_theta * np.sign(s_theta)
         else:
-            u2_sw = -self.k_theta * (s_theta / self.phi)
+            u2_sw = -self.k_theta * (s_theta / self.phi_theta)
         
         u1_eq = self.quad.m * (self.quad.g - self.lambda_z * e_z_dot) / np.cos(theta)
         u1 = u1_eq + u1_sw
@@ -162,7 +164,7 @@ def rk4_step(dynamics_func, state, u, t, dt):
 
 def generate_traj(t):
     circle_radius = 2.0
-    circle_freq = 0.05
+    circle_freq = 0.1
     
     #circ traj
     x_circle = circle_radius * np.cos(2 * np.pi * circle_freq * t)
@@ -172,7 +174,7 @@ def generate_traj(t):
     
     fig8_amp_x = 2.5
     fig8_amp_z = 1.5
-    fig8_freq = 0.25
+    fig8_freq = 0.05
     
     #fig8 traj
     x_fig8 = fig8_amp_x * np.sin(2 * np.pi * fig8_freq * t)
@@ -193,7 +195,7 @@ def sim_controller(controller, trajectory, controller_type, dt=0.01, t_end=50):
     quad = Quad2D()
     
     state = np.zeros((6, n_steps))
-    state[:, 0] = [2, 0, 0, 0, 0, 0]
+    state[:, 0] = trajectory[:, 0]
     
     controls = np.zeros((2, n_steps))
     if controller_type == 'SMC':
@@ -306,7 +308,7 @@ def plot_comparison(results_smc, results_pid, trajectories, traj_name):
     
     axes[2,2].plot(t_smc, sliding_smc[0,:], 'b-', linewidth=2, label='s_x')
     axes[2,2].plot(t_smc, sliding_smc[1,:], 'g-', linewidth=2, label='s_z')
-    # axes[2,2].plot(t_smc, sliding_smc[2,:], 'purple', linewidth=2, label='s_θ')
+    axes[2,2].plot(t_smc, sliding_smc[2,:], 'purple', linewidth=2, label='s_θ')
     axes[2,2].axhline(y=0, color='r', linestyle='--', alpha=0.7)
     axes[2,2].set_xlabel('Time (s)')
     axes[2,2].set_ylabel('Sliding Surf')
@@ -320,6 +322,7 @@ def plot_comparison(results_smc, results_pid, trajectories, traj_name):
 def calc_perf_metrics(t, state, reference):
     x_error = state[0,:] - reference[0,:]
     z_error = state[1,:] - reference[1,:]
+    theta_error = state[2,:] - reference[2,:]
     
     rmse_x = np.sqrt(np.mean(x_error**2))
     rmse_z = np.sqrt(np.mean(z_error**2))
@@ -327,6 +330,7 @@ def calc_perf_metrics(t, state, reference):
     
     max_error_x = np.max(np.abs(x_error))
     max_error_z = np.max(np.abs(z_error))
+    max_error_theta = np.max(np.abs(theta_error))
     
     settling_time_x = None
     settling_time_z = None
@@ -349,7 +353,8 @@ def calc_perf_metrics(t, state, reference):
         'max_error_x': max_error_x,
         'max_error_z': max_error_z,
         'settling_time_x': settling_time_x,
-        'settling_time_z': settling_time_z
+        'settling_time_z': settling_time_z,
+        'max_theta_error': max_error_theta
     }
 
 if __name__ == "__main__":
@@ -379,12 +384,12 @@ if __name__ == "__main__":
     metrics_smc_circle = calc_perf_metrics(results_smc_circle[0], results_smc_circle[1], circle_traj)
     metrics_pid_circle = calc_perf_metrics(results_pid_circle[0], results_pid_circle[1], circle_traj)
     
-    print(f"SMC - RMSE: {metrics_smc_circle['rmse_total']:.4f}m, Max ErrX: {metrics_smc_circle['max_error_x']:.3f}m, Max Err Z: {metrics_smc_circle['max_error_z']:.3f}m")
-    print(f"PID - RMSE: {metrics_pid_circle['rmse_total']:.4f}m, Max Err X: {metrics_pid_circle['max_error_x']:.3f}m, Max Err Z: {metrics_pid_circle['max_error_z']:.3f}m")
+    print(f"SMC - RMSE: {metrics_smc_circle['rmse_total']:.4f}m, Max ErrX: {metrics_smc_circle['max_error_x']:.3f}m, Max Err Z: {metrics_smc_circle['max_error_z']:.3f}m, Max Err theta: {metrics_smc_circle['max_theta_error']:.3f}rad")
+    print(f"PID - RMSE: {metrics_pid_circle['rmse_total']:.4f}m, Max Err X: {metrics_pid_circle['max_error_x']:.3f}m, Max Err Z: {metrics_pid_circle['max_error_z']:.3f}m, Max Err theta: {metrics_pid_circle['max_theta_error']:.3f}rad")
     
     print("\nFigure-8 Traj:")
     metrics_smc_fig8 = calc_perf_metrics(results_smc_fig8[0], results_smc_fig8[1], fig8_traj)
     metrics_pid_fig8 = calc_perf_metrics(results_pid_fig8[0], results_pid_fig8[1], fig8_traj)
     
-    print(f"SMC - RMSE: {metrics_smc_fig8['rmse_total']:.4f}m, Max Err X: {metrics_smc_fig8['max_error_x']:.3f}m, Max Err Z: {metrics_smc_fig8['max_error_z']:.3f}m")
-    print(f"PID - RMSE: {metrics_pid_fig8['rmse_total']:.4f}m, Max Err X: {metrics_pid_fig8['max_error_x']:.3f}m, Max Err Z: {metrics_pid_fig8['max_error_z']:.3f}m")
+    print(f"SMC - RMSE: {metrics_smc_fig8['rmse_total']:.4f}m, Max Err X: {metrics_smc_fig8['max_error_x']:.3f}m, Max Err Z: {metrics_smc_fig8['max_error_z']:.3f}m, Max Err theta: {metrics_smc_fig8['max_theta_error']:.3f}rad")
+    print(f"PID - RMSE: {metrics_pid_fig8['rmse_total']:.4f}m, Max Err X: {metrics_pid_fig8['max_error_x']:.3f}m, Max Err Z: {metrics_pid_fig8['max_error_z']:.3f}m, Max Err theta: {metrics_pid_fig8['max_theta_error']:.3f}rad")
